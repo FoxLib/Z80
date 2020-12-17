@@ -1,0 +1,219 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Fri Aug 16 05:02:20 2019
+[*]
+[dumpfile] "/disk/dev/z80/de0/main.vcd"
+[dumpfile_mtime] "Fri Aug 16 05:01:57 2019"
+[dumpfile_size] 398920
+[savefile] "/disk/dev/z80/de0/wave.gtkw"
+[timestart] 722
+[size] 1920 1029
+[pos] -1 -1
+*-6.000000 758 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] main.
+[treeopen] main.cpu.
+[sst_width] 248
+[signals_width] 247
+[sst_expanded] 1
+[sst_vpaned_height] 359
+@28
+main.clk
+main.clock_cpu
+@22
+main.cpu.pc[15:0]
+@28
+[color] 3
+main.cpu.t[2:0]
+[color] 3
+main.cpu.m[2:0]
+main.cpu.pin_enw
+main.cpu.alt
+@22
+[color] 3
+main.cpu.pin_a[15:0]
+main.cpu.cursor[15:0]
+[color] 7
+main.cpu.pin_i[7:0]
+[color] 7
+main.cpu.pin_o[7:0]
+main.cpu.opcode[7:0]
+@c00022
+main.cpu.opcode_ext[7:0]
+@28
+(0)main.cpu.opcode_ext[7:0]
+(1)main.cpu.opcode_ext[7:0]
+(2)main.cpu.opcode_ext[7:0]
+(3)main.cpu.opcode_ext[7:0]
+(4)main.cpu.opcode_ext[7:0]
+(5)main.cpu.opcode_ext[7:0]
+(6)main.cpu.opcode_ext[7:0]
+(7)main.cpu.opcode_ext[7:0]
+@1401200
+-group_end
+@22
+[color] 5
+main.cpu.r[7:0]
+[color] 5
+main.cpu.Z80_Delay[4:0]
+@800200
+-ALU
+@22
+[color] 2
+main.cpu.alu_m[4:0]
+[color] 2
+main.cpu.op1[7:0]
+[color] 2
+main.cpu.op2[7:0]
+main.cpu.op1w[15:0]
+main.cpu.op2w[15:0]
+[color] 2
+main.cpu.alu_r[8:0]
+@c00022
+main.cpu.alu_f[7:0]
+@28
+(0)main.cpu.alu_f[7:0]
+(1)main.cpu.alu_f[7:0]
+(2)main.cpu.alu_f[7:0]
+(3)main.cpu.alu_f[7:0]
+(4)main.cpu.alu_f[7:0]
+(5)main.cpu.alu_f[7:0]
+(6)main.cpu.alu_f[7:0]
+(7)main.cpu.alu_f[7:0]
+@1401200
+-group_end
+@1000200
+-ALU
+@800200
+-REG
+@c00200
+-RCONTROL
+@28
+[color] 7
+main.cpu.REGS.reg_n[2:0]
+@22
+[color] 7
+main.cpu.REGS.reg_l[7:0]
+@c00022
+[color] 7
+main.cpu.REGS.reg_u[7:0]
+@28
+[color] 7
+(0)main.cpu.REGS.reg_u[7:0]
+[color] 7
+(1)main.cpu.REGS.reg_u[7:0]
+[color] 7
+(2)main.cpu.REGS.reg_u[7:0]
+[color] 7
+(3)main.cpu.REGS.reg_u[7:0]
+[color] 7
+(4)main.cpu.REGS.reg_u[7:0]
+[color] 7
+(5)main.cpu.REGS.reg_u[7:0]
+[color] 7
+(6)main.cpu.REGS.reg_u[7:0]
+[color] 7
+(7)main.cpu.REGS.reg_u[7:0]
+@1401200
+-group_end
+@28
+[color] 7
+main.cpu.REGS.reg_w
+[color] 7
+main.cpu.REGS.reg_b
+[color] 7
+main.cpu.flg_w
+@22
+[color] 7
+main.cpu.r8[7:0]
+[color] 7
+main.cpu.r16[15:0]
+@1401200
+-RCONTROL
+@22
+[color] 5
+main.cpu.REGS.a[7:0]
+@c00022
+[color] 5
+main.cpu.REGS.f[7:0]
+@28
+[color] 5
+(0)main.cpu.REGS.f[7:0]
+[color] 5
+(1)main.cpu.REGS.f[7:0]
+[color] 5
+(2)main.cpu.REGS.f[7:0]
+[color] 5
+(3)main.cpu.REGS.f[7:0]
+[color] 5
+(4)main.cpu.REGS.f[7:0]
+[color] 5
+(5)main.cpu.REGS.f[7:0]
+[color] 5
+(6)main.cpu.REGS.f[7:0]
+[color] 5
+(7)main.cpu.REGS.f[7:0]
+@1401200
+-group_end
+@22
+[color] 5
+main.cpu.REGS.bc[15:0]
+[color] 5
+main.cpu.REGS.de[15:0]
+[color] 5
+main.cpu.REGS.HL[15:0]
+[color] 5
+main.cpu.REGS.sp[15:0]
+[color] 5
+main.cpu.REGS.ix[15:0]
+[color] 5
+main.cpu.REGS.iy[15:0]
+[color] 7
+main.cpu.hl[15:0]
+@28
+[color] 2
+main.cpu.REGS.cmd[2:0]
+@1000200
+-REG
+@c00201
+-INT
+@28
+main.cpu.irq[2:0]
+[color] 4
+main.cpu.halt
+[color] 4
+main.cpu.pend_int
+[color] 4
+main.cpu.pin_intr
+[color] 4
+main.cpu.iff1
+[color] 4
+main.cpu.iff1_
+main.cpu.di
+main.cpu.ei
+@22
+main.cpu.i[7:0]
+@28
+main.cpu.im[1:0]
+@1401201
+-INT
+@c00200
+-PREFIX
+@28
+main.cpu.pe
+main.cpu.pe_
+main.cpu.pex
+main.cpu.pem
+@1401200
+-PREFIX
+@c00200
+-PORT
+@22
+main.cpu.pin_pa[15:0]
+main.cpu.pin_pi[7:0]
+main.cpu.pin_po[7:0]
+@28
+main.cpu.pin_pw
+@1401200
+-PORT
+[pattern_trace] 1
+[pattern_trace] 0
