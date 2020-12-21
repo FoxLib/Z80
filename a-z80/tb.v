@@ -21,11 +21,13 @@ initial begin $dumpfile("tb.vcd"); $dumpvars(0, tb); end
 initial $readmemh("tb.hex", mem, 16'h0000);
 // ---------------------------------------------------------------------
 
+wire [7:0] I = mem[A];
+
 // Запись в память
 always @(posedge clock) if (nIORQ==1 && nRD==1 && nWR==0) mem[A] <= D;
 
 // При nRD=0 - читать из памяти
-assign D = nRD ? 8'hZZ : mem[A];
+assign D = nRD ? 8'hZZ : I;
 // ---------------------------------------------------------------------
 
 wire nM1;
@@ -34,9 +36,10 @@ wire nIORQ;     // сигнал инициализации портов ввод
 wire nRD;       // запрос чтения (RD=0)
 wire nWR;       // запрос записи (WR=0)
 wire nRFSH;     // Обновление
-wire nHALT;
+wire nHALT;     // Останов процессора
 wire nBUSACK;   // Запрос шины
 
+// Запросы извне
 wire nWAIT      = 1;
 wire nINT       = 1; // SW1 disables interrupts and, hence, keyboard
 wire nNMI       = 1; // Pressing KEY1 issues a NMI
