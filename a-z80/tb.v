@@ -9,9 +9,67 @@ always #0.5 clock    = ~clock;
 always #1.0 clock_50 = ~clock_50;
 always #1.5 clock_25 = ~clock_25;
 
+// Область памяти
+// ---------------------------------------------------------------------
+reg   [ 7:0] mem[65536]; // 64к тестовой памяти
+wire  [15:0] A;     // Address to memory
+inout [ 7:0] D;     // Data I/O
+
+// ---------------------------------------------------------------------
 initial begin clock = 1; clock_25 = 0; clock_50 = 0; #2000 $finish; end
 initial begin $dumpfile("tb.vcd"); $dumpvars(0, tb); end
+initial $readmemh("tb.hex", mem, 16'h0000);
 // ---------------------------------------------------------------------
+
+// Запись в память
+always @(posedge clock) if (nIORQ==1 && nRD==1 && nWR==0) mem[A] <= D;
+
+// При nRD=0 - читать из памяти
+assign D = nRD ? 8'hZZ : mem[A];
+// ---------------------------------------------------------------------
+
+wire nM1;
+wire nMREQ;     // сигнал инициализации устройств памяти (ОЗУ или ПЗУ);
+wire nIORQ;     // сигнал инициализации портов ввода-вывода.
+wire nRD;       // запрос чтения (RD=0)
+wire nWR;       // запрос записи (WR=0)
+wire nRFSH;     // Обновление
+wire nHALT;
+wire nBUSACK;   // Запрос шины
+
+wire nWAIT      = 1;
+wire nINT       = 1; // SW1 disables interrupts and, hence, keyboard
+wire nNMI       = 1; // Pressing KEY1 issues a NMI
+wire nBUSRQ     = 1;
+wire reset      = 1;
+
+// ---------------------------------------------------------------------
+
+z80_top_direct_n Z80Unit
+(
+    // Output
+    .nM1        (nM1),
+    .nMREQ      (nMREQ),
+    .nIORQ      (nIORQ),
+    .nRD        (nRD),
+    .nWR        (nWR),
+    .nRFSH      (nRFSH),
+    .nHALT      (nHALT),
+    .nBUSACK    (nBUSACK),
+
+    // Input
+    .nWAIT      (nWAIT),
+    .nINT       (nINT),
+    .nNMI       (nNMI),
+    .nRESET     (reset),
+    .nBUSRQ     (nBUSRQ),
+
+    // IO
+    .CLK        (clock_25),
+    .A          (A),
+    .D          (D)
+);
+
 endmodule
 
 `include "clk_delay.v"

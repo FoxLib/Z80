@@ -1,0 +1,42 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Mon Dec 21 15:46:06 2020
+[*]
+[dumpfile] "/disk/fox/dev/z80/a-z80/tb.vcd"
+[dumpfile_mtime] "Mon Dec 21 15:45:19 2020"
+[dumpfile_size] 569586
+[savefile] "/disk/fox/dev/z80/a-z80/tb.gtkw"
+[timestart] 0
+[size] 1920 1029
+[pos] -1 -1
+*-6.000000 15 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb.
+[sst_width] 248
+[signals_width] 146
+[sst_expanded] 1
+[sst_vpaned_height] 300
+@29
+tb.clock
+@28
+tb.clock_25
+@22
+tb.A[15:0]
+tb.D[7:0]
+@28
+tb.ext_ram_we
+tb.nBUSACK
+tb.nBUSRQ
+tb.nHALT
+tb.nINT
+tb.nIORQ
+tb.nM1
+tb.nMREQ
+tb.nNMI
+tb.nRD
+tb.nRFSH
+tb.nWAIT
+tb.nWR
+tb.ram_we
+tb.reset
+[pattern_trace] 1
+[pattern_trace] 0
