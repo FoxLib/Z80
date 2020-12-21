@@ -38,6 +38,7 @@ z80::z80(const char* caption) {
 
     sdl_screen = SDL_SetVideoMode(width, height, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
     SDL_WM_SetCaption(caption, 0);
+    SDL_EnableKeyRepeat(500, 30);
 
     // Количество семплов 882 x 50 = 44100
     audio_device.freq     = 44100;
