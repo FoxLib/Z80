@@ -31,20 +31,21 @@ assign D = nRD ? 8'hZZ : I;
 // ---------------------------------------------------------------------
 
 wire nM1;
-wire nMREQ;     // сигнал инициализации устройств памяти (ОЗУ или ПЗУ);
-wire nIORQ;     // сигнал инициализации портов ввода-вывода.
-wire nRD;       // запрос чтения (RD=0)
-wire nWR;       // запрос записи (WR=0)
-wire nRFSH;     // Обновление
+wire nMREQ;     // Сигнал инициализации устройств памяти (ОЗУ или ПЗУ);
+wire nIORQ;     // Сигнал инициализации портов ввода-вывода.
+wire nRD;       // Запрос чтения (RD=0)
+wire nWR;       // Запрос записи (WR=0)
+wire nRFSH;     // Refresh (регистр R)
 wire nHALT;     // Останов процессора
 wire nBUSACK;   // Запрос шины
 
 // Запросы извне
-wire nWAIT      = 1;
-wire nINT       = 1; // SW1 disables interrupts and, hence, keyboard
-wire nNMI       = 1; // Pressing KEY1 issues a NMI
-wire nBUSRQ     = 1;
-wire reset      = 1;
+wire nWAIT      = 1;    // Всегда 1
+wire nINT       = 1;    // Срабатывает при 0, вызывается при каждом кадре VGA (50 Гц должно быть)
+                        // При этом 0 активен от начала до конца линии (256 пикселей)
+wire nNMI       = 1;    // NMI активируется при 0
+wire nBUSRQ     = 1;    // Всегда 1
+wire nRESET     = 1;    // Кнопка сброса (или locked)
 
 // ---------------------------------------------------------------------
 
@@ -64,7 +65,7 @@ z80_top_direct_n Z80Unit
     .nWAIT      (nWAIT),
     .nINT       (nINT),
     .nNMI       (nNMI),
-    .nRESET     (reset),
+    .nRESET     (nRESET),
     .nBUSRQ     (nBUSRQ),
 
     // IO
