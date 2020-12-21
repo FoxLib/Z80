@@ -21,7 +21,8 @@ initial begin $dumpfile("tb.vcd"); $dumpvars(0, tb); end
 initial $readmemh("tb.hex", mem, 16'h0000);
 // ---------------------------------------------------------------------
 
-wire [7:0] I = mem[A];
+// Чтение из памяти или порта
+wire [7:0] I = nIORQ ? mem[A] : 8'hFF;
 
 // Запись в память
 always @(posedge clock) if (nIORQ==1 && nRD==1 && nWR==0) mem[A] <= D;
