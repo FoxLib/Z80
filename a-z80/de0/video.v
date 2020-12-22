@@ -13,7 +13,10 @@ module video(
     // Данные для вывода
     output  reg  [12:0] video_addr,
     input   wire [ 7:0] video_data,
-    input   wire [ 2:0] border
+    input   wire [ 2:0] border,
+
+    // Генерация сигнала для INT
+    output  reg         nvblank
 
 );
 
@@ -70,13 +73,15 @@ wire [11:0] color = {
 
 // Регистр border(3 бита) будет задаваться извне, например записью в порты какие-нибудь
 wire [11:0] bgcolor = {
-    border[1] ? 4'h7 : 4'h1,
-    border[2] ? 4'h7 : 4'h1,
-    border[0] ? 4'h7 : 4'h1
+    border[1] ? 4'hC : 4'h1,
+    border[2] ? 4'hC : 4'h1,
+    border[0] ? 4'hC : 4'h1
 };
 
 reg        flash;
 reg [23:0] timer;
+reg [18:0] t50hz;
+initial nvblank = 1'b1;
 
 always @(posedge clk) begin
 
@@ -85,6 +90,16 @@ always @(posedge clk) begin
         flash <= flash ^ 1'b1; // мигать каждые 0.5 секунд
     end else begin
         timer <= timer + 1'b1;
+    end
+
+    // Генератор 50 Гц сигнала
+    if (t50hz == 499999) t50hz <= 0;
+    else begin
+
+        // INT продолжается ровно 1 линию
+        nvblank <= t50hz > 499999-800 ? 1'b0 : 1'b1;
+        t50hz   <= t50hz + 1;
+
     end
 
 end

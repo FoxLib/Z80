@@ -140,6 +140,7 @@ end
 wire  [12:0] fb_addr;
 wire  [ 7:0] fb_data;
 reg   [ 2:0] fb_border = 3'b000;
+wire         nvblank;
 
 video UnitV(
 
@@ -151,12 +152,13 @@ video UnitV(
     .vs         (VGA_VS),
     .video_addr (fb_addr),
     .video_data (fb_data),
-    .border     (fb_border)
+    .border     (fb_border),
+    .nvblank    (nvblank)
 );
 
 // ---------------------------------------------------------------------
 
-wire nM1;
+wire nM1;       // Машинный цикл
 wire nMREQ;     // Сигнал инициализации устройств памяти (ОЗУ или ПЗУ);
 wire nIORQ;     // Сигнал инициализации портов ввода-вывода.
 wire nRD;       // Запрос чтения (RD=0)
@@ -167,8 +169,10 @@ wire nBUSACK;   // Запрос шины
 
 // Запросы извне
 wire nWAIT      = 1;    // Всегда 1
-wire nINT       = 1;    // Срабатывает при 0, вызывается при каждом кадре VGA (50 Гц должно быть)
-                        // При этом 0 активен от начала до конца линии (256 пикселей)
+
+// Срабатывает при 0, вызывается при каждом кадре VGA (50 Гц должно быть)
+// При этом 0 активен от начала до конца линии (256 пикселей)
+wire nINT       = (~nRESET) | nvblank;
 wire nNMI       = 1;    // NMI активируется при 0
 wire nBUSRQ     = 1;    // Всегда 1
 wire nRESET     = locked & RESET_N; // Сброс, пока не сконфигурирован выход PLL
