@@ -4,11 +4,13 @@ module keyboard(
     input wire        ps2_data_clk,
     input wire [7:0]  ps2_data,
     input wire [15:0] A,
-    output reg [7:0]  D
+    output reg [7:0]  D,
+    output reg        f1_screen
 );
 
 reg  released = 1'b0;
 reg  [5:0] zx_keys[8];
+initial f1_screen = 1'b0;
 
 initial begin
 
@@ -178,6 +180,9 @@ always @(posedge CLOCK_50) begin
                 /* 4LF */ 8'h6B: begin zx_keys[0][0] <= released; zx_keys[3][4] <= released; end
                 /* 2DN */ 8'h72: begin zx_keys[0][0] <= released; zx_keys[4][4] <= released; end
                 /* 6RT */ 8'h74: begin zx_keys[0][0] <= released; zx_keys[4][2] <= released; end
+
+                // Выбор экрана с подсказками
+                /* F1  */ 8'h05: begin f1_screen <= ~released; end
 
             endcase
 
