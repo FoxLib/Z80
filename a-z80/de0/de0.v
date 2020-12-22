@@ -104,7 +104,11 @@ wire  [ 7:0] D;
 wire W = nIORQ==1 && nRD==1 && nWR==0 && A[15:14]!=2'b00;
 
 // При nRD=0 - читать из памяти или порта
-assign D = nRD ? 8'hZZ : (nIORQ ? Dout : 8'hFF);
+assign D =
+    nRD   ? 8'hZZ :             // nRD=1   Чтение не производится
+    nIORQ ? Dout  :             // nIORQ=1 Читать из памяти
+    A[7:0] == 8'hFE ? DKbd :    // nIORQ=0 Читать из порта FEh
+    8'hFF;
 
 // 64Кб
 memory UnitM
@@ -154,6 +158,32 @@ video UnitV(
     .video_data (fb_data),
     .border     (fb_border),
     .nvblank    (nvblank)
+);
+
+// Модуль клавиатуры
+// ---------------------------------------------------------------------
+wire [7:0]  ps2_data;
+wire        ps2_data_clk;
+wire [7:0]  DKbd;
+
+// Физический интерфейс
+ps2_keyboard UnitPS(
+
+    .CLOCK_50 (CLOCK_50),
+    .PS2_CLK  (PS2_CLK),
+    .PS2_DAT  (PS2_DAT),
+    .received_data    (ps2_data),
+    .received_data_en (ps2_data_clk)
+);
+
+// Клавиатура ZX
+keyboard UnitKBD(
+
+    .CLOCK_50     (CLOCK2_50),
+    .ps2_data_clk (ps2_data_clk),
+    .ps2_data     (ps2_data),
+    .A  (A),
+    .D  (DKbd)
 );
 
 // ---------------------------------------------------------------------
