@@ -79,6 +79,7 @@ assign HEX5 = 7'b1111111;
 wire clock_25;
 wire clock_cpu;
 wire clock_100;
+wire locked;
 
 de0pll u0(
 
@@ -90,21 +91,22 @@ de0pll u0(
     .m50   (clock_50),
     .m3_5  (clock_cpu),
     .m100  (clock_100),
+    .locked (locked),
 );
 
 // 64К Памяти
 // -----------------------------------------------------------------------
+wire [7:0] Dout;
+
 memory UnitM(
 
     .clock      (clock_100),
 
     /* Процессор */
-    /*
-    .address_a  (pin_a),
-    .q_a        (ram_i),
-    .data_a     (pin_o),
-    .wren_a     (ram_enw),
-    */
+    .address_a  (A),
+    .q_a        (Dout),
+    .data_a     (D),
+    .wren_a     (W),
 
     /* Видеоадаптер */
     .address_b  ({3'b010, fb_addr}),
@@ -130,4 +132,65 @@ video UnitV(
     .border     (fb_border)
 );
 
+// Интерфейс памяти
+// -----------------------------------------------------------------------
+wire  [15:0] A;     // Address to memory
+wire  [ 7:0] D;     // Data I/O
+
+// Писать только если разрешено и не ROM
+wire W = nIORQ==1 && nRD==1 && nWR==0 && A[15:14]!=2'b00;
+
+// При nRD=0 - читать из памяти или порта
+assign D = nRD ? 8'hZZ : (nIORQ ? Dout : 8'hFF);
+// ---------------------------------------------------------------------
+
+wire nM1;
+wire nMREQ;     // Сигнал инициализации устройств памяти (ОЗУ или ПЗУ);
+wire nIORQ;     // Сигнал инициализации портов ввода-вывода.
+wire nRD;       // Запрос чтения (RD=0)
+wire nWR;       // Запрос записи (WR=0)
+wire nRFSH;     // Refresh (регистр R)
+wire nHALT;     // Останов процессора
+wire nBUSACK;   // Запрос шины
+
+// Запросы извне
+wire nWAIT      = 1;    // Всегда 1
+wire nINT       = 1;    // Срабатывает при 0, вызывается при каждом кадре VGA (50 Гц должно быть)
+                        // При этом 0 активен от начала до конца линии (256 пикселей)
+wire nNMI       = 1;    // NMI активируется при 0
+wire nBUSRQ     = 1;    // Всегда 1
+wire nRESET     = locked; // Сброс, пока не сконфигурирован выход PLL
+
+// Заблокировать такты
+wire CLOCK      = clock_cpu & locked;
+
+// ---------------------------------------------------------------------
+
+z80_top_direct_n Z80Unit
+(
+    // Output
+    .nM1        (nM1),
+    .nMREQ      (nMREQ),
+    .nIORQ      (nIORQ),
+    .nRD        (nRD),
+    .nWR        (nWR),
+    .nRFSH      (nRFSH),
+    .nHALT      (nHALT),
+    .nBUSACK    (nBUSACK),
+
+    // Input
+    .nWAIT      (nWAIT),
+    .nINT       (nINT),
+    .nNMI       (nNMI),
+    .nRESET     (nRESET),
+    .nBUSRQ     (nBUSRQ),
+
+    // IO
+    .CLK        (CLOCK),
+    .A          (A),
+    .D          (D)
+);
+
 endmodule
+
+`include "../z80_top_direct_n.v"
