@@ -77,8 +77,13 @@ assign HEX5 = 7'b1111111;
 
 // ---------------------------------------------------------------------
 wire clock_25;
-wire clock_cpu;
+wire clock_3_5;
+wire clock_7;
+wire clock_14;
 wire clock_100;
+
+// Разрешение TURBO-кнопки
+wire clock_cpu = SW[1] ? clock_14 : clock_3_5;
 wire locked;
 
 de0pll u0(
@@ -87,9 +92,10 @@ de0pll u0(
     .clkin  (CLOCK_50),
 
     // Производные частоты
+    .m3_5   (clock_3_5),
+    .m7     (clock_7),
+    .m14    (clock_14),
     .m25    (clock_25),
-    .m50    (clock_50),
-    .m3_5   (clock_cpu),
     .m100   (clock_100),
     .locked (locked),
 );
