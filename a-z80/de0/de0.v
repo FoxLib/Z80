@@ -184,19 +184,29 @@ end
 
 // Видеоадаптер
 // ---------------------------------------------------------------------
+
+assign VGA_R  = Rz;
+assign VGA_G  = Gz;
+assign VGA_B  = Bz;
+assign VGA_HS = HSz;
+assign VGA_VS = VSz;
+
 wire  [12:0] fb_addr;
 wire  [ 7:0] fb_data;
 reg   [ 2:0] fb_border = 3'b000;
 wire         nvblank;
+wire  [ 3:0] Rz; wire HSz;
+wire  [ 3:0] Gz; wire VSz;
+wire  [ 3:0] Bz;
 
 video UnitV(
 
     .clk        (clock_25),
-    .red        (VGA_R),
-    .green      (VGA_G),
-    .blue       (VGA_B),
-    .hs         (VGA_HS),
-    .vs         (VGA_VS),
+    .red        (Rz),
+    .green      (Gz),
+    .blue       (Bz),
+    .hs         (HSz),
+    .vs         (VSz),
     .video_addr (fb_addr),
     .video_data (fb_data),
     .border     (fb_border),
@@ -275,6 +285,39 @@ z80_top_direct_n Z80Unit
     // Ввод-вывод
     .A          (A),        // Адрес 64к
     .D          (D)         // Данные 8 бит
+);
+
+// ---------------------------------------------------------------------
+// Специальный модуль с экранами подсказок и календарем
+// ---------------------------------------------------------------------
+
+wire [3:0]  Rh; wire HSh;
+wire [3:0]  Gh; wire VSh;
+wire [3:0]  Bh;
+wire [11:0] ch_address;
+wire [11:0] fn_address;
+wire [ 7:0] ch_data;
+wire [ 7:0] fn_data;
+
+helper UnitHp
+(
+    .clock_25   (clock_25),
+    .R          (Rh),
+    .G          (Gh),
+    .B          (Bh),
+    .HS         (HSh),
+    .VS         (VSh),
+    .ch_address (ch_address),
+    .fn_address (fn_address),
+    .fn_data    (fn_data),
+    .ch_data    (ch_data),
+);
+
+font UnitFnt
+(
+    .clock      (clock_100),
+    .address_a  (fn_address),
+    .q_a        (fn_data)
 );
 
 endmodule
