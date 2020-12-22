@@ -73,6 +73,10 @@ always @(*) begin
 
 end
 
+reg ALT = 1'b1; // Left Alt
+wire CS = zx_keys[0][0]; // Caps Shift [L]
+wire SS = zx_keys[7][1]; // Symbol Shift [R]
+
 // https://ru.wikipedia.org/wiki/Скан-код
 // Данные принимаются только по тактовому сигналу и при наличии ps2_data_clk
 always @(posedge CLOCK_50) begin
@@ -88,7 +92,7 @@ always @(posedge CLOCK_50) begin
             case (ps2_data)
 
                 /* РЯД 0 */
-                /* SS */ 8'h12: zx_keys[0][0] <= released; // CAPS SHIFT [Левый Shift]
+                /* CS */ 8'h12: zx_keys[0][0] <= released; // CAPS SHIFT [Левый Shift]
                 /*  Z */ 8'h1A: zx_keys[0][1] <= released;
                 /*  X */ 8'h22: zx_keys[0][2] <= released;
                 /*  C */ 8'h21: zx_keys[0][3] <= released;
@@ -138,24 +142,35 @@ always @(posedge CLOCK_50) begin
 
                 /* РЯД 7 */
                 /* SP */ 8'h29: zx_keys[7][0] <= released; // SPACE
-                /* CS */ 8'h59: zx_keys[7][1] <= released; // SYMBOL SHIFT [Правый Shift]
+                /* SS */ 8'h59: zx_keys[7][1] <= released; // SYMBOL SHIFT [Правый Shift]
                 /*  M */ 8'h3A: zx_keys[7][2] <= released;
                 /*  N */ 8'h31: zx_keys[7][3] <= released;
                 /*  B */ 8'h32: zx_keys[7][4] <= released;
 
-                /* СПЕЦИАЛЬНЫЕ КНОПКИ */
-                /* ,  */ 8'h41: begin zx_keys[7][1] <= released; zx_keys[7][3] <= released; end
-                /* .  */ 8'h49: begin zx_keys[7][1] <= released; zx_keys[7][2] <= released; end
-                /* /  */ 8'h4A: begin zx_keys[7][1] <= released; zx_keys[0][4] <= released; end
-                /* ;  */ 8'h4C: begin zx_keys[7][1] <= released; zx_keys[5][1] <= released; end
-                /* =  */ 8'h55: begin zx_keys[7][1] <= released; zx_keys[6][1] <= released; end
-                /* -  */ 8'h4E: begin zx_keys[7][1] <= released; zx_keys[6][3] <= released; end
-                /* `  */ 8'h0E: begin zx_keys[7][1] <= released; zx_keys[4][3] <= released; end
+                /* Кнопки специальных символов */
+                // При нажатии CS выдается <b> иначе <a>
+                /* ,< */ 8'h41: begin zx_keys[7][1] <= released;
+                             if (ALT) zx_keys[7][3] <= released; else zx_keys[2][3] <= released; end
+                /* .> */ 8'h49: begin zx_keys[7][1] <= released;
+                             if (ALT) zx_keys[7][2] <= released; else zx_keys[2][4] <= released; end
+                /* /? */ 8'h4A: begin zx_keys[7][1] <= released;
+                             if (ALT) zx_keys[0][4] <= released; else zx_keys[0][3] <= released; end
+                /* ;: */ 8'h4C: begin zx_keys[7][1] <= released;
+                             if (ALT) zx_keys[5][1] <= released; else zx_keys[0][1] <= released; end
+                /* '" */ 8'h52: begin zx_keys[7][1] <= released;
+                             if (ALT) zx_keys[4][3] <= released; else zx_keys[5][0] <= released; end
+                /* -_ */ 8'h4E: begin zx_keys[7][1] <= released;
+                             if (ALT) zx_keys[6][3] <= released; else zx_keys[4][0] <= released; end
+                /* =+ */ 8'h55: begin zx_keys[7][1] <= released;
+                             if (ALT) zx_keys[6][1] <= released; else zx_keys[6][2] <= released; end
 
-                // Симуляция нажатия CS
-                /* CAP */ 8'h58: begin zx_keys[0][0] <= released; zx_keys[7][1] <= released; end
-                /* TAB */ 8'h0D: begin zx_keys[0][0] <= released; zx_keys[3][0] <= released; end
-                /* DEL */ 8'h66: begin zx_keys[0][0] <= released; zx_keys[4][0] <= released; end
+                // Специальные клавиши
+                /* CAP  */ 8'h58: begin zx_keys[0][0] <= released; zx_keys[7][1] <= released; end
+                /* TAB  */ 8'h0D: begin zx_keys[0][0] <= released; zx_keys[3][0] <= released; end
+                /* DEL  */ 8'h66: begin zx_keys[0][0] <= released; zx_keys[4][0] <= released; end
+
+                // При нажатии на левый альт активизируется симулятор Caps Shift для спецсимволов
+                /* LALT */ 8'h11: begin ALT <= released; end
 
                 // Стрелочки, в том числе на цифровой клавиатуре
                 /* 8UP */ 8'h75: begin zx_keys[0][0] <= released; zx_keys[4][3] <= released; end

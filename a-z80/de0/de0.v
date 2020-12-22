@@ -100,6 +100,8 @@ wire  [ 7:0] Dout;
 wire  [15:0] A;
 wire  [ 7:0] D;
 
+// Dout - декодирование в зависимости от состояния маппинга памяти
+
 // Писать только если разрешено и не ROM
 wire W = nIORQ==1 && nRD==1 && nWR==0 && A[15:14]!=2'b00;
 
@@ -110,7 +112,7 @@ assign D =
     A[7:0] == 8'hFE ? DKbd :    // nIORQ=0 Читать из порта FEh
     8'hFF;
 
-// 64Кб
+// 64Кб ROM1: 48k
 memory UnitM
 (
     .clock      (clock_100),
@@ -125,6 +127,9 @@ memory UnitM
     .address_b  ({3'b010, fb_addr}),
     .q_b        (fb_data),
 );
+
+// 16Kb ROM0: 128k
+// 64Kb EXTEND MEMORY
 
 // Ввод-вывод
 // ---------------------------------------------------------------------
@@ -201,8 +206,8 @@ wire nBUSACK;   // Запрос шины
 
 // Срабатывает при 0, вызывается при каждом кадре VGA (50 Гц)
 wire nINT       = (~nRESET) | nvblank;
-wire nNMI       = 1; // NMI активируется при 0
-wire nBUSRQ     = 1; // Всегда 1
+wire nNMI       = 1;    // NMI активируется при 0
+wire nBUSRQ     = 1;    // Всегда 1
 wire nWAIT      = 1;    // Всегда 1
 wire nRESET     = locked & RESET_N;     // Сброс, пока не сконфигурирован выход PLL
 wire CLOCK      = clock_cpu & locked;   // Заблокировать такты
