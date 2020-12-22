@@ -91,6 +91,43 @@ de0pll u0(
     .m3_5  (clock_cpu),
     .m100  (clock_100),
 );
+
+// 64К Памяти
 // -----------------------------------------------------------------------
+memory UnitM(
+
+    .clock      (clock_100),
+
+    /* Процессор */
+    /*
+    .address_a  (pin_a),
+    .q_a        (ram_i),
+    .data_a     (pin_o),
+    .wren_a     (ram_enw),
+    */
+
+    /* Видеоадаптер */
+    .address_b  ({3'b010, fb_addr}),
+    .q_b        (fb_data),
+);
+
+// Видеоадаптер
+// -----------------------------------------------------------------------
+wire [12:0] fb_addr;
+wire [ 7:0] fb_data;
+reg  [ 2:0] fb_border = 3'b000;
+
+video UnitV(
+
+    .clk        (clock_25),
+    .red        (VGA_R),
+    .green      (VGA_G),
+    .blue       (VGA_B),
+    .hs         (VGA_HS),
+    .vs         (VGA_VS),
+    .video_addr (fb_addr),
+    .video_data (fb_data),
+    .border     (fb_border)
+);
 
 endmodule
