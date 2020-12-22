@@ -115,13 +115,13 @@ memory UnitM
 (
     .clock      (clock_100),
 
-    /* Процессор */
+    // Процессор
     .address_a  (A),
     .q_a        (Dout),
     .data_a     (D),
     .wren_a     (W),
 
-    /* Видеоадаптер */
+    // Видеоадаптер
     .address_b  ({3'b010, fb_addr}),
     .q_b        (fb_data),
 );
@@ -132,7 +132,7 @@ always @(posedge clock_25) begin
 
     if (nIORQ==0 && nRD==1 && nWR==0) begin
 
-        // Обновление бордера
+        // Обновление бордюра
         if (A[7:0] == 8'hFE) fb_border[2:0] <= D[2:0];
 
     end
@@ -169,23 +169,25 @@ wire [7:0]  DKbd;
 // Физический интерфейс
 ps2_keyboard UnitPS(
 
-    .CLOCK_50 (CLOCK_50),
-    .PS2_CLK  (PS2_CLK),
-    .PS2_DAT  (PS2_DAT),
-    .received_data    (ps2_data),
-    .received_data_en (ps2_data_clk)
+    .CLOCK_50           (CLOCK_50),
+    .PS2_CLK            (PS2_CLK),
+    .PS2_DAT            (PS2_DAT),
+    .received_data      (ps2_data),
+    .received_data_en   (ps2_data_clk)
 );
 
 // Клавиатура ZX
 keyboard UnitKBD(
 
-    .CLOCK_50     (CLOCK2_50),
-    .ps2_data_clk (ps2_data_clk),
-    .ps2_data     (ps2_data),
-    .A  (A),
-    .D  (DKbd)
+    .CLOCK_50       (CLOCK2_50),
+    .ps2_data_clk   (ps2_data_clk),
+    .ps2_data       (ps2_data),
+    .A              (A),
+    .D              (DKbd)
 );
 
+// ---------------------------------------------------------------------
+// Интерфейс оригинала процессора Z80
 // ---------------------------------------------------------------------
 
 wire nM1;       // Машинный цикл
@@ -197,43 +199,39 @@ wire nRFSH;     // Refresh (регистр R)
 wire nHALT;     // Останов процессора
 wire nBUSACK;   // Запрос шины
 
-// Запросы извне
-wire nWAIT      = 1;    // Всегда 1
-
 // Срабатывает при 0, вызывается при каждом кадре VGA (50 Гц)
 wire nINT       = (~nRESET) | nvblank;
-wire nNMI       = 1;    // NMI активируется при 0
-wire nBUSRQ     = 1;    // Всегда 1
-wire nRESET     = locked & RESET_N; // Сброс, пока не сконфигурирован выход PLL
-
-// Заблокировать такты
-wire CLOCK      = clock_cpu & locked;
-
-// ---------------------------------------------------------------------
+wire nNMI       = 1; // NMI активируется при 0
+wire nBUSRQ     = 1; // Всегда 1
+wire nWAIT      = 1;    // Всегда 1
+wire nRESET     = locked & RESET_N;     // Сброс, пока не сконфигурирован выход PLL
+wire CLOCK      = clock_cpu & locked;   // Заблокировать такты
 
 z80_top_direct_n Z80Unit
 (
-    // Output
-    .nM1        (nM1),
-    .nMREQ      (nMREQ),
-    .nIORQ      (nIORQ),
-    .nRD        (nRD),
-    .nWR        (nWR),
-    .nRFSH      (nRFSH),
-    .nHALT      (nHALT),
-    .nBUSACK    (nBUSACK),
+    // Тактирование
+    .CLK        (CLOCK),    // Тактовая частота 3.5 Мгц
 
-    // Input
-    .nWAIT      (nWAIT),
-    .nINT       (nINT),
-    .nNMI       (nNMI),
-    .nRESET     (nRESET),
-    .nBUSRQ     (nBUSRQ),
+    // Выход
+    .nM1        (nM1),      // Машинный цикл
+    .nMREQ      (nMREQ),    // Сигнал запроса к памяти RAM/ROM
+    .nIORQ      (nIORQ),    // Сигнал запроса к портам
+    .nRD        (nRD),      // Сигнал чтения из памяти
+    .nWR        (nWR),      // Запись в память
+    .nRFSH      (nRFSH),    // Запрос обновления DRAM (не требуется)
+    .nHALT      (nHALT),    // Сигнал остановки процессора
+    .nBUSACK    (nBUSACK),  // Запрос шины
 
-    // IO
-    .CLK        (CLOCK),
-    .A          (A),
-    .D          (D)
+    // Вход
+    .nWAIT      (nWAIT),    // Ожидание разблокировки процессора (1)
+    .nINT       (nINT),     // Запрос Interrupt с VBlank
+    .nNMI       (nNMI),     // Запрос NMI
+    .nRESET     (nRESET),   // Сброс процессора
+    .nBUSRQ     (nBUSRQ),   // Запрос на шину данных
+
+    // Ввод-вывод
+    .A          (A),        // Адрес 64к
+    .D          (D)         // Данные 8 бит
 );
 
 endmodule
