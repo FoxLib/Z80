@@ -73,7 +73,8 @@ always @(*) begin
 
 end
 
-/* Данные принимаются только по тактовому сигналу и при наличии ps2_data_clk */
+// https://ru.wikipedia.org/wiki/Скан-код
+// Данные принимаются только по тактовому сигналу и при наличии ps2_data_clk
 always @(posedge CLOCK_50) begin
 
     if (ps2_data_clk) begin
@@ -87,7 +88,7 @@ always @(posedge CLOCK_50) begin
             case (ps2_data)
 
                 /* РЯД 0 */
-                /* SS */ 8'h12: zx_keys[0][0] <= released; // CAPS
+                /* SS */ 8'h12: zx_keys[0][0] <= released; // CAPS SHIFT [Левый Shift]
                 /*  Z */ 8'h1A: zx_keys[0][1] <= released;
                 /*  X */ 8'h22: zx_keys[0][2] <= released;
                 /*  C */ 8'h21: zx_keys[0][3] <= released;
@@ -137,7 +138,7 @@ always @(posedge CLOCK_50) begin
 
                 /* РЯД 7 */
                 /* SP */ 8'h29: zx_keys[7][0] <= released; // SPACE
-                /* CS */ 8'h59: zx_keys[7][1] <= released; // SYMBOL
+                /* CS */ 8'h59: zx_keys[7][1] <= released; // SYMBOL SHIFT [Правый Shift]
                 /*  M */ 8'h3A: zx_keys[7][2] <= released;
                 /*  N */ 8'h31: zx_keys[7][3] <= released;
                 /*  B */ 8'h32: zx_keys[7][4] <= released;
@@ -145,17 +146,22 @@ always @(posedge CLOCK_50) begin
                 /* СПЕЦИАЛЬНЫЕ КНОПКИ */
                 /* ,  */ 8'h41: begin zx_keys[7][1] <= released; zx_keys[7][3] <= released; end
                 /* .  */ 8'h49: begin zx_keys[7][1] <= released; zx_keys[7][2] <= released; end
-                /* /  */ 8'h4A: begin zx_keys[7][1] <= released; zx_keys[7][4] <= released; end
-                /* ;  */ 8'h4C: begin zx_keys[7][1] <= released; zx_keys[6][2] <= released; end
-                /* '  */ 8'h52: begin zx_keys[7][1] <= released; zx_keys[6][1] <= released; end
-                /* ]  */ 8'h5B: begin zx_keys[7][1] <= released; zx_keys[5][0] <= released; end
-                /* [  */ 8'h54: begin zx_keys[7][1] <= released; zx_keys[5][1] <= released; end
-                /* \  */ 8'h5D: begin zx_keys[7][1] <= released; zx_keys[5][2] <= released; end
-                /* =  */ 8'h55: begin zx_keys[7][1] <= released; zx_keys[5][3] <= released; end
-                /* -  */ 8'h4E: begin zx_keys[7][1] <= released; zx_keys[5][4] <= released; end
-                /* ~  */ 8'h0E: begin zx_keys[7][1] <= released; zx_keys[2][0] <= released; end
-                /* TB */ 8'h0D: begin zx_keys[7][1] <= released; zx_keys[2][1] <= released; end
-                /* DL */ 8'h66: begin zx_keys[7][1] <= released; zx_keys[2][2] <= released; end
+                /* /  */ 8'h4A: begin zx_keys[7][1] <= released; zx_keys[0][4] <= released; end
+                /* ;  */ 8'h4C: begin zx_keys[7][1] <= released; zx_keys[5][1] <= released; end
+                /* =  */ 8'h55: begin zx_keys[7][1] <= released; zx_keys[6][1] <= released; end
+                /* -  */ 8'h4E: begin zx_keys[7][1] <= released; zx_keys[6][3] <= released; end
+                /* `  */ 8'h0E: begin zx_keys[7][1] <= released; zx_keys[4][3] <= released; end
+
+                // Симуляция нажатия CS
+                /* CAP */ 8'h58: begin zx_keys[0][0] <= released; zx_keys[7][1] <= released; end
+                /* TAB */ 8'h0D: begin zx_keys[0][0] <= released; zx_keys[3][0] <= released; end
+                /* DEL */ 8'h66: begin zx_keys[0][0] <= released; zx_keys[4][0] <= released; end
+
+                // Стрелочки, в том числе на цифровой клавиатуре
+                /* 8UP */ 8'h75: begin zx_keys[0][0] <= released; zx_keys[4][3] <= released; end
+                /* 4LF */ 8'h6B: begin zx_keys[0][0] <= released; zx_keys[3][4] <= released; end
+                /* 2DN */ 8'h72: begin zx_keys[0][0] <= released; zx_keys[4][4] <= released; end
+                /* 6RT */ 8'h74: begin zx_keys[0][0] <= released; zx_keys[4][2] <= released; end
 
             endcase
 
