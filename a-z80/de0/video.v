@@ -78,10 +78,10 @@ wire [11:0] bgcolor = {
     border[0] ? 4'hC : 4'h1
 };
 
-reg        flash;
-reg [23:0] timer;
-reg [18:0] t50hz;
-initial nvblank = 1'b1;
+reg         flash;
+reg [23:0]  timer;
+reg [18:0]  t50hz;
+initial     nvblank = 1'b1;
 
 always @(posedge clk) begin
 
@@ -108,21 +108,10 @@ end
 // будет осциллироваться на частоте 25 мгц (в 4 раза медленее, чем 100 мгц)
 always @(posedge clk) begin
 
-    // аналогично этой конструции на C
-    // if (x == 799) x = 0; else x += 1;
     x <= x == (horiz_whole - 1) ? 1'b0 : (x + 1'b1);
+    if (x == (horiz_whole - 1)) y <= y == (vert_whole - 1) ? 1'b0 : (y + 1'b1);
 
-    // Когда достигаем конца горизонтальной линии, переходим к Y+1
-    if (x == (horiz_whole - 1)) begin
-
-        // if (x == 524) y = 0; else y += 1;
-        y <= y == (vert_whole - 1) ? 1'b0 : (y + 1'b1);
-
-    end
-
-    // Обязательно надо тут использовать попиксельный выход, а то пиксели
-    // наполовину съезжают
-
+    // Обязательно надо тут использовать попиксельный выход, а то пиксели наполовину съезжают
     case (x[3:0])
 
         // Видеоадрес в ZX Spectrum непросто вычислить
