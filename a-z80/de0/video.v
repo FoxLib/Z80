@@ -22,6 +22,7 @@ module video(
 
     // Запрос
     input   wire        f1_screen,
+    input   wire        f2_screen,
 
     // Доступ к памяти
     output  reg  [11:0] ch_address, // 4k Видеоданные
@@ -60,7 +61,7 @@ reg [9:0] y = 1'b0;
 // Чтобы правильно начинались данные, нужно их выровнять
 wire [7:0] X = x[9:1] - 24;
 wire [7:0] Y = y[9:1] - 4;
-wire [9:0] tx = x + 8;
+wire [9:0] tx = x < 792 ? x + 8 : x - 792;
 
 // ---------------------------------------------------------------------
 
@@ -170,7 +171,7 @@ always @(posedge clk) begin
     // Мы находимся в видимой области рисования
     if (x < horiz_visible && y < vert_visible) begin
 
-        if (f1_screen) begin
+        if (f1_screen | f2_screen) begin
             {red, green, blue} <= maskbit ? (attr[7] & flash80 ? bgcolor80 : frcolor80) : bgcolor80;
         end
         else begin
@@ -241,7 +242,7 @@ wire [15:0] bgcolor80 =
                         12'hccc;  // 7 Серый
 
 // Источник данных (фрейм)
-wire [7:0] ch_data = ch_data2;
+wire [7:0] ch_data = f2_screen ? ch_data1 : ch_data2;
 
 // Извлечение битовой маски и атрибутов для генерации шрифта
 always @(posedge clk) begin

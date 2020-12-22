@@ -196,6 +196,7 @@ wire  [ 7:0] fb_data;
 reg   [ 2:0] fb_border = 3'b000;
 wire         nvblank;
 wire         f1_screen;
+wire         f2_screen;
 
 video UnitV(
 
@@ -212,6 +213,7 @@ video UnitV(
 
     // Альтернативный экран
     .f1_screen  (f1_screen),
+    .f2_screen  (SW[0]),
     .ch_address (ch_address),
     .fn_address (fn_address),
     .fn_data    (fn_data),
@@ -229,8 +231,16 @@ font UnitFnt
     .q_a        (fn_data)
 );
 
+// Экран календаря
+srcdata #(.MIF_FILE("screen1.mif")) UnitSrc1
+(
+    .clock      (clock_100),
+    .address_a  (ch_address),
+    .q_a        (ch_data1)
+);
+
 // Экран справки к спектруму
-srcdata #(.MIF_FILE("screen2.mif")) UnitSrc1
+srcdata #(.MIF_FILE("screen2.mif")) UnitSrc2
 (
     .clock      (clock_100),
     .address_a  (ch_address),
