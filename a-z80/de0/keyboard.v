@@ -168,6 +168,7 @@ always @(posedge CLOCK_50) begin
                 /* CAP  */ 8'h58: begin zx_keys[0][0] <= released; zx_keys[7][1] <= released; end
                 /* TAB  */ 8'h0D: begin zx_keys[0][0] <= released; zx_keys[3][0] <= released; end
                 /* DEL  */ 8'h66: begin zx_keys[0][0] <= released; zx_keys[4][0] <= released; end
+                /* ESC  */ 8'h76: begin zx_keys[0][0] <= released; zx_keys[7][0] <= released; end
 
                 // При нажатии на левый альт активизируется симулятор Caps Shift для спецсимволов
                 /* LALT */ 8'h11: begin ALT <= released; end

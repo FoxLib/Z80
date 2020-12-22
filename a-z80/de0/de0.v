@@ -96,46 +96,84 @@ de0pll u0(
 
 // Интерфейс памяти
 // -----------------------------------------------------------------------
-wire  [ 7:0] Dout;
+reg   [ 7:0] Data;              // Данные на основную шину
+wire  [ 7:0] Dout;              // Оперативная память 128k
+wire  [ 7:0] Drom;              // Обращение к ROM
 wire  [15:0] A;
 wire  [ 7:0] D;
+reg   [16:0] address;
+reg   [ 7:0] membank = 8'b00000000;
 
 // Dout - декодирование в зависимости от состояния маппинга памяти
+always @* begin
 
-// Писать только если разрешено и не ROM
+    address = A;
+    Data    = Dout;
+
+    case (A[15:14])
+
+        // Выбор банка памяти ROM; 1-48k, 0-128k. Если membank[5]=1, то тогда всегда 48k
+        /* 0000-3FFF */ 2'b00: begin address = {membank[4] | membank[5], A[13:0]}; Data = Drom; end
+
+        // Данный 16к блок всегда отображает bank 5
+        /* 4000-7FFF */ 2'b01: begin address = {3'b101, A[13:0]}; end
+
+        // Средняя память: всегда bank 2
+        /* 8000-BFFF */ 2'b10: begin address = {3'b010, A[13:0]}; end
+
+        // Верхняя память
+        /* C000-FFFF */ 2'b11: begin address = {membank[2:0], A[13:0]}; end
+
+    endcase
+
+end
+
+// Писать только если разрешено, и не указывает на ROM
 wire W = nIORQ==1 && nRD==1 && nWR==0 && A[15:14]!=2'b00;
 
 // При nRD=0 - читать из памяти или порта
 assign D =
     nRD   ? 8'hZZ :             // nRD=1   Чтение не производится
-    nIORQ ? Dout  :             // nIORQ=1 Читать из памяти
+    nIORQ ? Data  :             // nIORQ=1 Читать из памяти
     A[7:0] == 8'hFE ? DKbd :    // nIORQ=0 Читать из порта FEh
     8'hFF;
 
-// 64Кб ROM1: 48k
+// 128k
 memory UnitM
 (
     .clock      (clock_100),
 
     // Процессор
-    .address_a  (A),
+    .address_a  (address),
     .q_a        (Dout),
     .data_a     (D),
     .wren_a     (W),
 
-    // Видеоадаптер
-    .address_b  ({3'b010, fb_addr}),
+    // Видеоадаптер (5-й или 7-й банк)
+    .address_b  ({1'b1, membank[3], 2'b10, fb_addr}),
     .q_b        (fb_data),
 );
 
-// 16Kb ROM0: 128k
-// 64Kb EXTEND MEMORY
+// 32k
+rom UnitR(
+
+    .clock      (clock_100),
+    .address_a  (address[14:0]),
+    .q_a        (Drom),
+
+);
 
 // Ввод-вывод
 // ---------------------------------------------------------------------
 always @(posedge clock_25) begin
 
+    // Обновить бит в 0 при сбросе
+    if (RESET_N) membank[5] <= 1'b0;
+
     if (nIORQ==0 && nRD==1 && nWR==0) begin
+
+        // Выбор банка и настроек возможно только при бите 5 равному 0
+        if (A == 16'h7FFD && !membank[5]) membank <= D;
 
         // Обновление бордюра
         if (A[7:0] == 8'hFE) fb_border[2:0] <= D[2:0];

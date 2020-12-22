@@ -2,7 +2,7 @@
 `timescale 1 ps / 1 ps
 
 // synopsys translate_on
-module memory (
+module rom (
     clock,
     address_a, address_b,
     data_a,    data_b,
@@ -10,8 +10,8 @@ module memory (
     q_a,       q_b
 );
 
-input    [16:0] address_a;
-input    [16:0] address_b;
+input    [14:0] address_a;
+input    [14:0] address_b;
 input           clock;
 input    [7:0]  data_a;
 input    [7:0]  data_b;
@@ -69,11 +69,11 @@ defparam
     altsyncram_component.clock_enable_output_a = "BYPASS",
     altsyncram_component.clock_enable_output_b = "BYPASS",
     altsyncram_component.indata_reg_b = "CLOCK0",
-    altsyncram_component.init_file = "memory.mif",
+    altsyncram_component.init_file = "rom.mif",
     altsyncram_component.intended_device_family = "Cyclone V",
     altsyncram_component.lpm_type = "altsyncram",
-    altsyncram_component.numwords_a = 131072,
-    altsyncram_component.numwords_b = 131072,
+    altsyncram_component.numwords_a = 32768,
+    altsyncram_component.numwords_b = 32768,
     altsyncram_component.operation_mode = "BIDIR_DUAL_PORT",
     altsyncram_component.outdata_aclr_a = "NONE",
     altsyncram_component.outdata_aclr_b = "NONE",
@@ -84,8 +84,8 @@ defparam
     altsyncram_component.read_during_write_mode_mixed_ports = "DONT_CARE",
     altsyncram_component.read_during_write_mode_port_a = "NEW_DATA_NO_NBE_READ",
     altsyncram_component.read_during_write_mode_port_b = "NEW_DATA_NO_NBE_READ",
-    altsyncram_component.widthad_a = 17,
-    altsyncram_component.widthad_b = 17,
+    altsyncram_component.widthad_a = 15,
+    altsyncram_component.widthad_b = 15,
     altsyncram_component.width_a = 8,
     altsyncram_component.width_b = 8,
     altsyncram_component.width_byteena_a = 1,
