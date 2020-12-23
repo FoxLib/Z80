@@ -65,7 +65,9 @@ module de0(
 // Z-state
 assign DRAM_DQ = 16'hzzzz;
 assign GPIO_0  = 36'hzzzzzzzz;
-assign GPIO_1  = 36'hzzzzzzzz;
+
+// D35-GND, D34-SPKR
+assign GPIO_1  = {~speaker, 1'bz, speaker, 33'hzzzzzzzz};
 
 // LED OFF
 assign HEX0 = 7'b1111111;
@@ -171,6 +173,9 @@ rom UnitR(
 
 // Ввод-вывод
 // ---------------------------------------------------------------------
+
+reg speaker;
+
 always @(posedge clock_25) begin
 
     // Обновить параметры при сбросе
@@ -182,7 +187,13 @@ always @(posedge clock_25) begin
         if (A == 16'h7FFD && !membank[5]) membank <= D;
 
         // Обновление бордюра
-        if (A[7:0] == 8'hFE) fb_border[2:0] <= D[2:0];
+        // https://speccy.info/Порт_FE
+        if (A[7:0] == 8'hFE) begin
+
+            fb_border[2:0]  <= D[2:0];         // D3-управление записью на магнитофон
+            speaker         <= D[4] ^ D[3];    // Выход динамика (и микрофона)
+
+        end
 
     end
 
