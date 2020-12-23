@@ -61,17 +61,13 @@ class zx {
 
                 let result = 0xff;
 
-                // Чтение клавиатуры
+                // Чтение с клавиатуры
                 if ((port & 0xFF) == 0xFE) {
-
                     for (let row = 0; row < 8; row++) {
-
-                        // bit held low, so scan this row
                         if (!(port & (1 << (row + 8)))) {
                             result &= this.keyStates[ row ];
                         }
                     }
-
                 }
 
                 return result;
@@ -315,7 +311,7 @@ class zx {
         let x = address & 0x1F;
 
         let attr    = this.mem[base + 0x1800 + x + ((address & 0x1800) >> 3) + (address & 0xE0)];
-        let bgcolor = this.get_color((attr & 0x38) >> 3);
+        let bgcolor = this.get_color((attr & 0x78) >> 3);
         let frcolor = this.get_color((attr & 0x07) + ((attr & 0x40) >> 3));
         let flash   = (attr & 0x80) ? 1 : 0;
 
