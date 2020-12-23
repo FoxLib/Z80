@@ -83,7 +83,7 @@ wire clock_14;
 wire clock_100;
 
 // Разрешение TURBO-кнопки
-wire clock_cpu = SW[1] ? clock_14 : clock_3_5;
+wire clock_cpu = SW[1] ? clock_25 : clock_3_5;
 wire locked;
 
 de0pll u0(
