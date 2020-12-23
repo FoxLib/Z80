@@ -1,5 +1,6 @@
 class zx {
 
+    // zx.net
     constructor() {
 
         this.mem = new Uint8Array(128*1024); // 128k  RAM
@@ -10,6 +11,8 @@ class zx {
         this.vidpage = 0;
         this.mlocked = 0;
 
+        this.tall = 0;
+        this.tp = 0;
         this.tstates = 0;
         this.started = 0;
         this.display_affect = 0;
@@ -86,6 +89,26 @@ class zx {
                     this.rombank = data & 0x10 ? 1 : 0;
                     this.mlocked = data & 0x20 ? 1 : 0;
                 }
+                // Установка цвета и звука
+                else if ((address & 0xff) == 0xfe) {
+
+                    let cl = this.get_color(data & 7).toString(16);
+                    cl = "000000".substr(0, 6-cl.length) + cl;
+                    document.body.style.backgroundColor = '#' + cl;
+
+                    console.log(this.tall - this.tp, data.toString() & 0x08);
+                    this.tp = this.tall;
+                }
+                // AY ADDRESS
+                else if (address == 0xfffd) {
+                }
+                // AY DATA
+                else if (address == 0xbffd) {
+                }
+                else {
+
+                    //console.log(address.toString(16), data);
+                }
 
             }.bind(this),
         });
@@ -142,14 +165,21 @@ class zx {
             66: {row: 7, mask: 0x10}, /* B */
             78: {row: 7, mask: 0x08}, /* N */
             77: {row: 7, mask: 0x04}, /* M */
-            17: {row: 7, mask: 0x02}, /* sym - gah, firefox screws up ctrl+key too [ctrl] */
+            18: {row: 7, mask: 0x02}, /* alt */
             32: {row: 7, mask: 0x01}  /* space */
         };
 
         // Сочетания клавиш
         this.keyCombo = {
             8:      [16, 48],       // DELETE
-            186:    [17, 90],       // :
+            9:      [16, 18],       // TAB
+            186:    [18, 90],       // :
+            188:    [18, 78],       // ,
+            190:    [18, 77],       // .
+            37:     [16, 53],       // Left
+            38:     [16, 55],       // Up
+            39:     [16, 56],       // Right
+            40:     [16, 54],       // Down
             // 192: [16, 49],       // Тильда вызываем EDIT
         };
 
@@ -231,14 +261,16 @@ class zx {
     // Процессинг нажатия на клавиатуру
     keypress(evt, action) {
 
-        let keyCode = this.keyCodes[ evt.keyCode ];
-        if (keyCode === null) {
+        let keyCode = this.keyCodes[ evt.keyCode ] || 0;
 
-            let keyCom = this.keyCombo[ evt.keyCode ];
-            if (keyCom === null) {
-                return;
+        if (keyCode === 0) {
 
-            } else {
+            if (this.keyCombo[ evt.keyCode ]) {
+                let keyCom = this.keyCombo[ evt.keyCode ];
+                if (keyCom === null) {
+                    return;
+
+                } else {
 
                 for (let id in keyCom) {
 
@@ -251,8 +283,9 @@ class zx {
                     }
                 }
             }
+            }
 
-        } else {
+        } else if (this.keyStates[ keyCode.row ]) {
 
             if (action) {
                 this.keyStates[ keyCode.row ] &= ~(keyCode.mask);
@@ -342,6 +375,8 @@ class zx {
     };
 
     // ------------------- RUN INSTRUCTIONS ----------------------------
+    // RANDOMIZE USR 15616
+
     frame() {
 
         let time = (new Date()).getTime();
@@ -349,7 +384,11 @@ class zx {
 
         // Выполнить фрейм
         while (this.tstates < 70000) {
-            this.tstates += this.z80.run_instruction();
+
+            let t = this.z80.run_instruction();
+
+            this.tall += t;
+            this.tstates += t;
         }
         this.tstates %= 70000;
 

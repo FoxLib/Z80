@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Минимальный шаблон</title>
+    <title>ZX Spectrum 128k</title>
     <meta charset="utf8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="Z80.js"></script>
