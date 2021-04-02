@@ -105,7 +105,6 @@ static const int cycle_counts_dd[256] = {
     0,  0,  0,  0,  0,  0,  0,  0,  0, 10,  0,  0,  0,  0,  0,  0
 };
 
-
 class Z80 {
 protected:
 
@@ -165,9 +164,17 @@ public:
 
     // @TODO реализовать!
     int mem_read(int address) {
+        return 0;
     }
 
     void mem_write(int address, int value) {
+    }
+
+    int io_read(int port) {
+        return 0;
+    }
+
+    void io_write(int port, int data) {
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -347,7 +354,6 @@ public:
         {
             int operand = get_operand(opcode);
 
-            /*
             switch ((opcode & 0x38) >> 3) {
                 case 0: do_add(operand); break;
                 case 1: do_adc(operand); break;
@@ -358,7 +364,6 @@ public:
                 case 6: do_or (operand); break;
                 case 7: do_cp (operand); break;
             }
-            */
         }
         else
         {
@@ -403,4 +408,570 @@ public:
     // We could try to actually calculate the parity every time,
     //  but why calculate what you can pre-calculate?
     int get_parity(int value) { return parity_bits[value & 0xff]; };
+
+    // Most of the time, the undocumented flags
+    //  (sometimes called X and Y, or 3 and 5),
+    //  take their values from the corresponding bits
+    //  of the result of the instruction,
+    //  or from some other related value.
+    // This is a utility function to set those flags based on those bits.
+    void update_xy_flags(int result)
+    {
+        flags.Y = (result & 0x20) >> 5;
+        flags.X = (result & 0x08) >> 3;
+    };
+
+    int get_signed_offset_byte(int value)
+    {
+        // This function requires some explanation.
+        // We just use JavaScript Number variables for our registers,
+        //  not like a typed array or anything.
+        // That means that, when we have a byte value that's supposed
+        //  to represent a signed offset, the value we actually see
+        //  isn't signed at all, it's just a small integer.
+        // So, this function converts that byte into something JavaScript
+        //  will recognize as signed, so we can easily do arithmetic with it.
+        // First, we clamp the value to a single byte, just in case.
+        value &= 0xff;
+
+        // We don't have to do anything if the value is positive.
+        if (value & 0x80)
+        {
+            // But if the value is negative, we need to manually un-two's-compliment it.
+            // I'm going to assume you can figure out what I meant by that,
+            //  because I don't know how else to explain it.
+            // We could also just do value |= 0xffffff00, but I prefer
+            //  not caring how many bits are in the integer representation
+            //  of a JavaScript number in the currently running browser.
+            //  value = -((0xff & ~value) + 1);
+            value -= 256;
+        }
+
+        return value;
+    };
+
+    // This is the ADD A, [operand] instructions.
+    // We'll do the literal addition, which includes any overflow,
+    //  so that we can more easily figure out whether we had
+    //  an overflow or a carry and set the flags accordingly.
+    void do_add(int operand)
+    {
+        int result = a + operand;
+
+        // The great majority of the work for the arithmetic instructions
+        //  turns out to be setting the flags rather than the actual operation.
+        flags.S = (result & 0x80) ? 1 : 0;
+        flags.Z = !(result & 0xff) ? 1 : 0;
+        flags.H = (((operand & 0x0f) + (a & 0x0f)) & 0x10) ? 1 : 0;
+
+        // An overflow has happened if the sign bits of the accumulator and the operand
+        //  don't match the sign bit of the result value.
+        flags.P = ((a & 0x80) == (operand & 0x80)) && ((a & 0x80) != (result & 0x80)) ? 1 : 0;
+        flags.N = 0;
+        flags.C = (result & 0x100) ? 1 : 0;
+
+        a = result & 0xff;
+        update_xy_flags(a);
+    }
+
+    void do_adc(int operand)
+    {
+        int result = a + operand + flags.C;
+
+        flags.S = (result & 0x80) ? 1 : 0;
+        flags.Z = !(result & 0xff) ? 1 : 0;
+        flags.H = (((operand & 0x0f) + (a & 0x0f) + flags.C) & 0x10) ? 1 : 0;
+        flags.P = ((a & 0x80) == (operand & 0x80)) && ((a & 0x80) != (result & 0x80)) ? 1 : 0;
+        flags.N = 0;
+        flags.C = (result & 0x100) ? 1 : 0;
+
+        a = result & 0xff;
+        update_xy_flags(a);
+    }
+
+    void do_sub(int operand)
+    {
+        int result = a - operand;
+
+        flags.S = (result & 0x80) ? 1 : 0;
+        flags.Z = !(result & 0xff) ? 1 : 0;
+        flags.H = (((a & 0x0f) - (operand & 0x0f)) & 0x10) ? 1 : 0;
+        flags.P = ((a & 0x80) != (operand & 0x80)) && ((a & 0x80) != (result & 0x80)) ? 1 : 0;
+        flags.N = 1;
+        flags.C = (result & 0x100) ? 1 : 0;
+
+        a = result & 0xff;
+        update_xy_flags(a);
+    }
+
+    void do_sbc(int operand)
+    {
+        int result = a - operand - flags.C;
+
+        flags.S = (result & 0x80) ? 1 : 0;
+        flags.Z = !(result & 0xff) ? 1 : 0;
+        flags.H = (((a & 0x0f) - (operand & 0x0f) - flags.C) & 0x10) ? 1 : 0;
+        flags.P = ((a & 0x80) != (operand & 0x80)) && ((a & 0x80) != (result & 0x80)) ? 1 : 0;
+        flags.N = 1;
+        flags.C = (result & 0x100) ? 1 : 0;
+
+        a = result & 0xff;
+        update_xy_flags(a);
+    }
+
+    void do_cp(int operand)
+    {
+        // A compare instruction is just a subtraction that doesn't save the value,
+        //  so we implement it as... a subtraction that doesn't save the value.
+        int temp = a;
+        do_sub(operand);
+        a = temp;
+        // Since this instruction has no "result" value, the undocumented flags
+        //  are set based on the operand instead.
+        update_xy_flags(operand);
+    }
+
+    // The logic instructions are all pretty straightforward.
+    void do_and(int operand)
+    {
+        a &= operand & 0xff;
+        flags.S = (a & 0x80) ? 1 : 0;
+        flags.Z = !a ? 1 : 0;
+        flags.H = 1;
+        flags.P = get_parity(a);
+        flags.N = 0;
+        flags.C = 0;
+        update_xy_flags(a);
+    }
+
+    void do_or(int operand)
+    {
+        a = (operand | a) & 0xff;
+        flags.S = (a & 0x80) ? 1 : 0;
+        flags.Z = !a ? 1 : 0;
+        flags.H = 0;
+        flags.P = get_parity(a);
+        flags.N = 0;
+        flags.C = 0;
+        update_xy_flags(a);
+    }
+
+    void do_xor(int operand)
+    {
+        a = (operand ^ a) & 0xff;
+        flags.S = (a & 0x80) ? 1 : 0;
+        flags.Z = !a ? 1 : 0;
+        flags.H = 0;
+        flags.P = get_parity(a);
+        flags.N = 0;
+        flags.C = 0;
+        update_xy_flags(a);
+    }
+
+    int do_inc(int operand)
+    {
+        int result = operand + 1;
+
+        flags.S = (result & 0x80) ? 1 : 0;
+        flags.Z = !(result & 0xff) ? 1 : 0;
+        flags.H = ((operand & 0x0f) == 0x0f) ? 1 : 0;
+        // It's a good deal easier to detect overflow for an increment/decrement.
+        flags.P = (operand == 0x7f) ? 1 : 0;
+        flags.N = 0;
+
+        result &= 0xff;
+        update_xy_flags(result);
+
+        return result;
+    }
+
+    int do_dec(int operand)
+    {
+        int result = operand - 1;
+
+        flags.S = (result & 0x80) ? 1 : 0;
+        flags.Z = !(result & 0xff) ? 1 : 0;
+        flags.H = ((operand & 0x0f) == 0x00) ? 1 : 0;
+        flags.P = (operand == 0x80) ? 1 : 0;
+        flags.N = 1;
+
+        result &= 0xff;
+        update_xy_flags(result);
+
+        return result;
+    }
+
+    // The HL arithmetic instructions are the same as the A ones,
+    //  just with twice as many bits happening.
+    void do_hl_add(int operand)
+    {
+        int hl = l | (h << 8);
+        int result = hl + operand;
+
+        flags.N = 0;
+        flags.C = (result & 0x10000) ? 1 : 0;
+        flags.H = (((hl & 0x0fff) + (operand & 0x0fff)) & 0x1000) ? 1 : 0;
+
+        l = result & 0xff;
+        h = (result & 0xff00) >> 8;
+
+        update_xy_flags(h);
+    };
+
+    void do_hl_adc(int operand)
+    {
+        operand += flags.C;
+        int hl = l | (h << 8);
+        int result = hl + operand;
+
+        flags.S = (result & 0x8000) ? 1 : 0;
+        flags.Z = !(result & 0xffff) ? 1 : 0;
+        flags.H = (((hl & 0x0fff) + (operand & 0x0fff)) & 0x1000) ? 1 : 0;
+        flags.P = ((hl & 0x8000) == (operand & 0x8000)) && ((result & 0x8000) != (hl & 0x8000)) ? 1 : 0;
+        flags.N = 0;
+        flags.C = (result & 0x10000) ? 1 : 0;
+
+        l = result & 0xff;
+        h = (result >> 8) & 0xff;
+
+        update_xy_flags(h);
+    };
+
+    void do_hl_sbc(int operand)
+    {
+        operand += flags.C;
+        int hl = l | (h << 8);
+        int result = hl - operand;
+
+        flags.S = (result & 0x8000) ? 1 : 0;
+        flags.Z = !(result & 0xffff) ? 1 : 0;
+        flags.H = (((hl & 0x0fff) - (operand & 0x0fff)) & 0x1000) ? 1 : 0;
+        flags.P = ((hl & 0x8000) != (operand & 0x8000)) && ((result & 0x8000) != (hl & 0x8000)) ? 1 : 0;
+        flags.N = 1;
+        flags.C = (result & 0x10000) ? 1 : 0;
+
+        l = result & 0xff;
+        h = (result >> 8) & 0xff;
+
+        update_xy_flags(h);
+    };
+
+    int do_in(int port)
+    {
+        int result = io_read(port);
+
+        flags.S = (result & 0x80) ? 1 : 0;
+        flags.Z = result ? 0 : 1;
+        flags.H = 0;
+        flags.P = get_parity(result) ? 1 : 0;
+        flags.N = 0;
+        update_xy_flags(result);
+
+        return result;
+    };
+
+    void do_neg()
+    {
+        // This instruction is defined to not alter the register if it === 0x80.
+        if (a != 0x80)
+        {
+            // This is a signed operation, so convert A to a signed value.
+            a = get_signed_offset_byte(a);
+            a = (-a) & 0xff;
+        }
+
+        flags.S = (a & 0x80) ? 1 : 0;
+        flags.Z = !a ? 1 : 0;
+        flags.H = (((-a) & 0x0f) > 0) ? 1 : 0;
+        flags.P = (a == 0x80) ? 1 : 0;
+        flags.N = 1;
+        flags.C = a ? 1 : 0;
+        update_xy_flags(a);
+    };
+
+    void do_ldi()
+    {
+        // Copy the value that we're supposed to copy.
+        int read_value = mem_read(l | (h << 8));
+        mem_write(e | (d << 8), read_value);
+
+        // Increment DE and HL, and decrement BC.
+        int result = (e | (d << 8)) + 1;
+        e = result & 0xff;
+        d = (result & 0xff00) >> 8;
+        result = (l | (h << 8)) + 1;
+
+        l = result & 0xff;
+        h = (result & 0xff00) >> 8;
+        result = (c | (b << 8)) - 1;
+
+        c = result & 0xff;
+        b = (result & 0xff00) >> 8;
+
+        flags.H = 0;
+        flags.P = (c || b) ? 1 : 0;
+        flags.N = 0;
+        flags.Y = ((a + read_value) & 0x02) >> 1;
+        flags.X = ((a + read_value) & 0x08) >> 3;
+    };
+
+    void do_cpi()
+    {
+        int temp_carry = flags.C;
+        int read_value = mem_read(l | (h << 8));
+        do_cp(read_value);
+
+        flags.C = temp_carry;
+        flags.Y = ((a - read_value - flags.H) & 0x02) >> 1;
+        flags.X = ((a - read_value - flags.H) & 0x08) >> 3;
+
+        int result = (l | (h << 8)) + 1;
+        l = result & 0xff;
+        h = (result & 0xff00) >> 8;
+
+        result = (c | (b << 8)) - 1;
+        c = result & 0xff;
+        b = (result & 0xff00) >> 8;
+
+        flags.P = result ? 1 : 0;
+    };
+
+    void do_ini()
+    {
+        b = do_dec(b);
+
+        mem_write(l | (h << 8), io_read((b << 8) | c));
+
+        int result = (l | (h << 8)) + 1;
+        l = result & 0xff;
+        h = (result & 0xff00) >> 8;
+
+        flags.N = 1;
+    };
+
+    void do_outi()
+    {
+        io_write((b << 8) | c, mem_read(l | (h << 8)));
+
+        int result = (l | (h << 8)) + 1;
+        l = result & 0xff;
+        h = (result & 0xff00) >> 8;
+
+        b = do_dec(b);
+        flags.N = 1;
+    };
+
+    void do_ldd()
+    {
+        flags.N = 0;
+        flags.H = 0;
+
+        int read_value = mem_read(l | (h << 8));
+        mem_write(e | (d << 8), read_value);
+
+        int result = (e | (d << 8)) - 1;
+        e = result & 0xff;
+        d = (result & 0xff00) >> 8;
+        result = (l | (h << 8)) - 1;
+
+        l = result & 0xff;
+        h = (result & 0xff00) >> 8;
+        result = (c | (b << 8)) - 1;
+
+        c = result & 0xff;
+        b = (result & 0xff00) >> 8;
+
+        flags.P = (c || b) ? 1 : 0;
+        flags.Y = ((a + read_value) & 0x02) >> 1;
+        flags.X = ((a + read_value) & 0x08) >> 3;
+    };
+
+    void do_cpd()
+    {
+        int temp_carry = flags.C;
+        int read_value = mem_read(l | (h << 8));
+
+        do_cp(read_value);
+        flags.C = temp_carry;
+        flags.Y = ((a - read_value - flags.H) & 0x02) >> 1;
+        flags.X = ((a - read_value - flags.H) & 0x08) >> 3;
+
+        int result = (l | (h << 8)) - 1;
+        l = result & 0xff;
+        h = (result & 0xff00) >> 8;
+
+        result = (c | (b << 8)) - 1;
+        c = result & 0xff;
+        b = (result & 0xff00) >> 8;
+
+        flags.P = result ? 1 : 0;
+    };
+
+    void do_ind()
+    {
+        b = do_dec(b);
+
+        mem_write(l | (h << 8), io_read((b << 8) | c));
+
+        int result = (l | (h << 8)) - 1;
+        l = result & 0xff;
+        h = (result & 0xff00) >> 8;
+
+        flags.N = 1;
+    };
+
+    void do_outd()
+    {
+        io_write((b << 8) | c, mem_read(l | (h << 8)));
+
+        int result = (l | (h << 8)) - 1;
+        l = result & 0xff;
+        h = (result & 0xff00) >> 8;
+
+        b = do_dec(b);
+        flags.N = 1;
+    };
+
+    int do_rlc(int operand)
+    {
+        flags.N = 0;
+        flags.H = 0;
+
+        flags.C = (operand & 0x80) >> 7;
+        operand = ((operand << 1) | flags.C) & 0xff;
+
+        flags.Z = !operand ? 1 : 0;
+        flags.P = get_parity(operand);
+        flags.S = (operand & 0x80) ? 1 : 0;
+        update_xy_flags(operand);
+
+        return operand;
+    };
+
+    int do_rrc(int operand)
+    {
+        flags.N = 0;
+        flags.H = 0;
+
+        flags.C = operand & 1;
+        operand = ((operand >> 1) & 0x7f) | (flags.C << 7);
+
+        flags.Z = !(operand & 0xff) ? 1 : 0;
+        flags.P = get_parity(operand);
+        flags.S = (operand & 0x80) ? 1 : 0;
+        update_xy_flags(operand);
+
+        return operand & 0xff;
+    };
+
+    int do_rl(int operand)
+    {
+        flags.N = 0;
+        flags.H = 0;
+
+        int temp = flags.C;
+        flags.C = (operand & 0x80) >> 7;
+        operand = ((operand << 1) | temp) & 0xff;
+
+        flags.Z = !operand ? 1 : 0;
+        flags.P = get_parity(operand);
+        flags.S = (operand & 0x80) ? 1 : 0;
+        update_xy_flags(operand);
+
+        return operand;
+    };
+
+    int do_rr(int operand)
+    {
+        flags.N = 0;
+        flags.H = 0;
+
+        int temp = flags.C;
+        flags.C = operand & 1;
+        operand = ((operand >> 1) & 0x7f) | (temp << 7);
+
+        flags.Z = !operand ? 1 : 0;
+        flags.P = get_parity(operand);
+        flags.S = (operand & 0x80) ? 1 : 0;
+        update_xy_flags(operand);
+
+        return operand;
+    };
+
+    int do_sla(int operand)
+    {
+        flags.N = 0;
+        flags.H = 0;
+
+        flags.C = (operand & 0x80) >> 7;
+        operand = (operand << 1) & 0xff;
+
+        flags.Z = !operand ? 1 : 0;
+        flags.P = get_parity(operand);
+        flags.S = (operand & 0x80) ? 1 : 0;
+        update_xy_flags(operand);
+
+        return operand;
+    };
+
+    int do_sra(int operand)
+    {
+        flags.N = 0;
+        flags.H = 0;
+
+        flags.C = operand & 1;
+        operand = ((operand >> 1) & 0x7f) | (operand & 0x80);
+
+        flags.Z = !operand ? 1 : 0;
+        flags.P = get_parity(operand);
+        flags.S = (operand & 0x80) ? 1 : 0;
+        update_xy_flags(operand);
+
+        return operand;
+    };
+
+    int do_sll(int operand)
+    {
+        flags.N = 0;
+        flags.H = 0;
+
+        flags.C = (operand & 0x80) >> 7;
+        operand = ((operand << 1) & 0xff) | 1;
+
+        flags.Z = !operand ? 1 : 0;
+        flags.P = get_parity(operand);
+        flags.S = (operand & 0x80) ? 1 : 0;
+        update_xy_flags(operand);
+
+        return operand;
+    };
+
+    int do_srl(int operand)
+    {
+        flags.N = 0;
+        flags.H = 0;
+
+        flags.C = operand & 1;
+        operand = (operand >> 1) & 0x7f;
+
+        flags.Z = !operand ? 1 : 0;
+        flags.P = get_parity(operand);
+        flags.S = 0;
+        update_xy_flags(operand);
+
+        return operand;
+    };
+
+    void do_ix_add(int operand)
+    {
+        flags.N = 0;
+
+        int result = ix + operand;
+
+        flags.C = (result & 0x10000) ? 1 : 0;
+        flags.H = (((ix & 0xfff) + (operand & 0xfff)) & 0x1000) ? 1 : 0;
+        update_xy_flags((result & 0xff00) >> 8);
+
+        ix = result;
+    };
 };
