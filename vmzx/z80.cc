@@ -1219,7 +1219,7 @@ public:
 
                     pc = (pc + 1) & 0xffff;
                     int opcode = mem_read(pc),
-                    func = dd_case opcode];
+                    func = dd_instructions[opcode];
 
                     if (func)
                     {
@@ -1346,7 +1346,6 @@ public:
                     break;
                 };
                 // 0xed : ED Prefix
-/* @TODO
                 case 0xed:
                 {
                     // R is incremented at the start of the second instruction cycle,
@@ -1356,12 +1355,10 @@ public:
                     r = (r & 0x80) | (((r & 0x7f) + 1) & 0x7f);
 
                     pc = (pc + 1) & 0xffff;
-                    int opcode = mem_read(pc),
-                    func = ed_case opcode];
+                    int opcode = mem_read(pc);
 
-                    if (func)
+                    if (ed_instructions(opcode))
                     {
-                        func();
                         cycle_counter += cycle_counts_ed[opcode];
                     }
                     else
@@ -1371,7 +1368,7 @@ public:
                     }
                     break;
                 };
-*/
+
                 // 0xee : XOR n
                 case 0xee:
                 {
@@ -1480,7 +1477,7 @@ public:
 
                     pc = (pc + 1) & 0xffff;
                     int opcode = mem_read(pc),
-                    func = dd_case opcode];
+                    func = dd_instructions[opcode];
 
                     if (func)
                     {
@@ -1541,7 +1538,612 @@ public:
     ///////////////////////////////////////////////////////////////////////////////
 
     // Исполнение инструкции EDh
-    void ed_instructions(int opcode) {
+    int ed_instructions(int opcode) {
+
+        switch (opcode) {
+
+            // 0x40 : IN B, (C)
+            case 0x40:
+            {
+                b = do_in((b << 8) | c);
+                return 1;
+            };
+            // 0x41 : OUT (C), B
+            case 0x41:
+            {
+                io_write((b << 8) | c, b);
+                return 1;
+            };
+            // 0x42 : SBC HL, BC
+            case 0x42:
+            {
+                do_hl_sbc(c | (b << 8));
+                return 1;
+            };
+            // 0x43 : LD (nn), BC
+            case 0x43:
+            {
+                pc = (pc + 1) & 0xffff;
+                int address = mem_read(pc);
+                pc = (pc + 1) & 0xffff;
+                address |= mem_read(pc) << 8;
+
+                mem_write(address, c);
+                mem_write((address + 1) & 0xffff, b);
+                return 1;
+            };
+            // 0x44 : NEG
+            case 0x44:
+            {
+                do_neg();
+                return 1;
+            };
+            // 0x45 : RETN
+            case 0x45:
+            {
+                pc = (pop_word() - 1) & 0xffff;
+                iff1 = iff2;
+                return 1;
+            };
+            // 0x46 : IM 0
+            case 0x46:
+            {
+                imode = 0;
+                return 1;
+            };
+            // 0x47 : LD I, A
+            case 0x47:
+            {
+                i = a;
+                return 1;
+            };
+            // 0x48 : IN C, (C)
+            case 0x48:
+            {
+                c = do_in((b << 8) | c);
+                return 1;
+            };
+            // 0x49 : OUT (C), C
+            case 0x49:
+            {
+                io_write((b << 8) | c, c);
+                return 1;
+            };
+            // 0x4a : ADC HL, BC
+            case 0x4a:
+            {
+                do_hl_adc(c | (b << 8));
+                return 1;
+            };
+            // 0x4b : LD BC, (nn)
+            case 0x4b:
+            {
+                pc = (pc + 1) & 0xffff;
+                int address = mem_read(pc);
+                pc = (pc + 1) & 0xffff;
+                address |= mem_read(pc) << 8;
+
+                c = mem_read(address);
+                b = mem_read((address + 1) & 0xffff);
+                return 1;
+            };
+            // 0x4c : NEG (Undocumented)
+            case 0x4c:
+            {
+                do_neg();
+                return 1;
+            };
+            // 0x4d : RETI
+            case 0x4d:
+            {
+                pc = (pop_word() - 1) & 0xffff;
+                return 1;
+            };
+            // 0x4e : IM 0 (Undocumented)
+            case 0x4e:
+            {
+                imode = 0;
+                return 1;
+            };
+            // 0x4f : LD R, A
+            case 0x4f:
+            {
+                r = a;
+                return 1;
+            };
+            // 0x50 : IN D, (C)
+            case 0x50:
+            {
+                d = do_in((b << 8) | c);
+                return 1;
+            };
+            // 0x51 : OUT (C), D
+            case 0x51:
+            {
+                io_write((b << 8) | c, d);
+                return 1;
+            };
+            // 0x52 : SBC HL, DE
+            case 0x52:
+            {
+                do_hl_sbc(e | (d << 8));
+                return 1;
+            };
+            // 0x53 : LD (nn), DE
+            case 0x53:
+            {
+                pc = (pc + 1) & 0xffff;
+                int address = mem_read(pc);
+                pc = (pc + 1) & 0xffff;
+                address |= mem_read(pc) << 8;
+
+                mem_write(address, e);
+                mem_write((address + 1) & 0xffff, d);
+                return 1;
+            };
+            // 0x54 : NEG (Undocumented)
+            case 0x54:
+            {
+                do_neg();
+                return 1;
+            };
+            // 0x55 : RETN
+            case 0x55:
+            {
+                pc = (pop_word() - 1) & 0xffff;
+                iff1 = iff2;
+                return 1;
+            };
+            // 0x56 : IM 1
+            case 0x56:
+            {
+                imode = 1;
+                return 1;
+            };
+            // 0x57 : LD A, I
+            case 0x57:
+            {
+                a = i;
+                flags.S = a & 0x80 ? 1 : 0;
+                flags.Z = a ? 0 : 1;
+                flags.H = 0;
+                flags.P = iff2;
+                flags.N = 0;
+                update_xy_flags(a);
+                return 1;
+            };
+            // 0x58 : IN E, (C)
+            case 0x58:
+            {
+                e = do_in((b << 8) | c);
+                return 1;
+            };
+            // 0x59 : OUT (C), E
+            case 0x59:
+            {
+                io_write((b << 8) | c, e);
+                return 1;
+            };
+            // 0x5a : ADC HL, DE
+            case 0x5a:
+            {
+                do_hl_adc(e | (d << 8));
+                return 1;
+            };
+            // 0x5b : LD DE, (nn)
+            case 0x5b:
+            {
+                pc = (pc + 1) & 0xffff;
+                int address = mem_read(pc);
+                pc = (pc + 1) & 0xffff;
+                address |= mem_read(pc) << 8;
+
+                e = mem_read(address);
+                d = mem_read((address + 1) & 0xffff);
+                return 1;
+            };
+            // 0x5c : NEG (Undocumented)
+            case 0x5c:
+            {
+                do_neg();
+                return 1;
+            };
+            // 0x5d : RETN
+            case 0x5d:
+            {
+                pc = (pop_word() - 1) & 0xffff;
+                iff1 = iff2;
+                return 1;
+            };
+            // 0x5e : IM 2
+            case 0x5e:
+            {
+                imode = 2;
+                return 1;
+            };
+            // 0x5f : LD A, R
+            case 0x5f:
+            {
+                a = r;
+                flags.S = a & 0x80 ? 1 : 0;
+                flags.Z = a ? 0 : 1;
+                flags.H = 0;
+                flags.P = iff2;
+                flags.N = 0;
+                update_xy_flags(a);
+                return 1;
+            };
+            // 0x60 : IN H, (C)
+            case 0x60:
+            {
+                h = do_in((b << 8) | c);
+                return 1;
+            };
+            // 0x61 : OUT (C), H
+            case 0x61:
+            {
+                io_write((b << 8) | c, h);
+                return 1;
+            };
+            // 0x62 : SBC HL, HL
+            case 0x62:
+            {
+                do_hl_sbc(l | (h << 8));
+                return 1;
+            };
+            // 0x63 : LD (nn), HL (Undocumented)
+            case 0x63:
+            {
+                pc = (pc + 1) & 0xffff;
+                int address = mem_read(pc);
+                pc = (pc + 1) & 0xffff;
+                address |= mem_read(pc) << 8;
+
+                mem_write(address, l);
+                mem_write((address + 1) & 0xffff, h);
+                return 1;
+            };
+            // 0x64 : NEG (Undocumented)
+            case 0x64:
+            {
+                do_neg();
+                return 1;
+            };
+            // 0x65 : RETN
+            case 0x65:
+            {
+                pc = (pop_word() - 1) & 0xffff;
+                iff1 = iff2;
+                return 1;
+            };
+            // 0x66 : IM 0
+            case 0x66:
+            {
+                imode = 0;
+                return 1;
+            };
+            // 0x67 : RRD
+            case 0x67:
+            {
+                int hl_value = mem_read(l | (h << 8));
+                int temp1 = hl_value & 0x0f,
+                    temp2 = a & 0x0f;
+
+                hl_value = ((hl_value & 0xf0) >> 4) | (temp2 << 4);
+                a = (a & 0xf0) | temp1;
+                mem_write(l | (h << 8), hl_value);
+
+                flags.S = (a & 0x80) ? 1 : 0;
+                flags.Z = a ? 0 : 1;
+                flags.H = 0;
+                flags.P = get_parity(a) ? 1 : 0;
+                flags.N = 0;
+                update_xy_flags(a);
+                return 1;
+            };
+            // 0x68 : IN L, (C)
+            case 0x68:
+            {
+                l = do_in((b << 8) | c);
+                return 1;
+            };
+            // 0x69 : OUT (C), L
+            case 0x69:
+            {
+                io_write((b << 8) | c, l);
+                return 1;
+            };
+            // 0x6a : ADC HL, HL
+            case 0x6a:
+            {
+                do_hl_adc(l | (h << 8));
+                return 1;
+            };
+            // 0x6b : LD HL, (nn) (Undocumented)
+            case 0x6b:
+            {
+                pc = (pc + 1) & 0xffff;
+                int address = mem_read(pc);
+                pc = (pc + 1) & 0xffff;
+                address |= mem_read(pc) << 8;
+
+                l = mem_read(address);
+                h = mem_read((address + 1) & 0xffff);
+                return 1;
+            };
+            // 0x6c : NEG (Undocumented)
+            case 0x6c:
+            {
+                do_neg();
+                return 1;
+            };
+            // 0x6d : RETN
+            case 0x6d:
+            {
+                pc = (pop_word() - 1) & 0xffff;
+                iff1 = iff2;
+                return 1;
+            };
+            // 0x6e : IM 0 (Undocumented)
+            case 0x6e:
+            {
+                imode = 0;
+                return 1;
+            };
+            // 0x6f : RLD
+            case 0x6f:
+            {
+                int hl_value = mem_read(l | (h << 8));
+                int temp1 = hl_value & 0xf0, temp2 = a & 0x0f;
+                hl_value = ((hl_value & 0x0f) << 4) | temp2;
+                a = (a & 0xf0) | (temp1 >> 4);
+                mem_write(l | (h << 8), hl_value);
+
+                flags.S = (a & 0x80) ? 1 : 0;
+                flags.Z = a ? 0 : 1;
+                flags.H = 0;
+                flags.P = get_parity(a) ? 1 : 0;
+                flags.N = 0;
+                update_xy_flags(a);
+                return 1;
+            };
+            // 0x70 : IN (C) (Undocumented)
+            case 0x70:
+            {
+                do_in((b << 8) | c);
+                return 1;
+            };
+            // 0x71 : OUT (C), 0 (Undocumented)
+            case 0x71:
+            {
+                io_write((b << 8) | c, 0);
+                return 1;
+            };
+            // 0x72 : SBC HL, SP
+            case 0x72:
+            {
+                do_hl_sbc(sp);
+                return 1;
+            };
+            // 0x73 : LD (nn), SP
+            case 0x73:
+            {
+                pc = (pc + 1) & 0xffff;
+                int address = mem_read(pc);
+                pc = (pc + 1) & 0xffff;
+                address |= mem_read(pc) << 8;
+
+                mem_write(address, sp & 0xff);
+                mem_write((address + 1) & 0xffff, (sp >> 8) & 0xff);
+                return 1;
+            };
+            // 0x74 : NEG (Undocumented)
+            case 0x74:
+            {
+                do_neg();
+                return 1;
+            };
+            // 0x75 : RETN
+            case 0x75:
+            {
+                pc = (pop_word() - 1) & 0xffff;
+                iff1 = iff2;
+                return 1;
+            };
+            // 0x76 : IM 1
+            case 0x76:
+            {
+                imode = 1;
+                return 1;
+            };
+            // 0x78 : IN A, (C)
+            case 0x78:
+            {
+                a = do_in((b << 8) | c);
+                return 1;
+            };
+            // 0x79 : OUT (C), A
+            case 0x79:
+            {
+                io_write((b << 8) | c, a);
+                return 1;
+            };
+            // 0x7a : ADC HL, SP
+            case 0x7a:
+            {
+                do_hl_adc(sp);
+                return 1;
+            };
+            // 0x7b : LD SP, (nn)
+            case 0x7b:
+            {
+                pc = (pc + 1) & 0xffff;
+                int address = mem_read(pc);
+                pc = (pc + 1) & 0xffff;
+                address |= mem_read(pc) << 8;
+
+                sp  = mem_read(address);
+                sp |= mem_read((address + 1) & 0xffff) << 8;
+                return 1;
+            };
+            // 0x7c : NEG (Undocumented)
+            case 0x7c:
+            {
+                do_neg();
+                return 1;
+            };
+            // 0x7d : RETN
+            case 0x7d:
+            {
+                pc = (pop_word() - 1) & 0xffff;
+                iff1 = iff2;
+                return 1;
+            };
+            // 0x7e : IM 2
+            case 0x7e:
+            {
+                imode = 2;
+                return 1;
+            };
+            // 0xa0 : LDI
+            case 0xa0:
+            {
+                do_ldi();
+                return 1;
+            };
+            // 0xa1 : CPI
+            case 0xa1:
+            {
+                do_cpi();
+                return 1;
+            };
+            // 0xa2 : INI
+            case 0xa2:
+            {
+                do_ini();
+                return 1;
+            };
+            // 0xa3 : OUTI
+            case 0xa3:
+            {
+                do_outi();
+                return 1;
+            };
+            // 0xa8 : LDD
+            case 0xa8:
+            {
+                do_ldd();
+                return 1;
+            };
+            // 0xa9 : CPD
+            case 0xa9:
+            {
+                do_cpd();
+                return 1;
+            };
+            // 0xaa : IND
+            case 0xaa:
+            {
+                do_ind();
+                return 1;
+            };
+            // 0xab : OUTD
+            case 0xab:
+            {
+                do_outd();
+                return 1;
+            };
+            // 0xb0 : LDIR
+            case 0xb0:
+            {
+                do_ldi();
+                if (b || c)
+                {
+                    cycle_counter += 5;
+                    pc = (pc - 2) & 0xffff;
+                }
+                return 1;
+            };
+            // 0xb1 : CPIR
+            case 0xb1:
+            {
+                do_cpi();
+                if (!flags.Z && (b || c))
+                {
+                    cycle_counter += 5;
+                    pc = (pc - 2) & 0xffff;
+                }
+                return 1;
+            };
+            // 0xb2 : INIR
+            case 0xb2:
+            {
+                do_ini();
+                if (b)
+                {
+                    cycle_counter += 5;
+                    pc = (pc - 2) & 0xffff;
+                }
+                return 1;
+            };
+            // 0xb3 : OTIR
+            case 0xb3:
+            {
+                do_outi();
+                if (b)
+                {
+                    cycle_counter += 5;
+                    pc = (pc - 2) & 0xffff;
+                }
+                return 1;
+            };
+            // 0xb8 : LDDR
+            case 0xb8:
+            {
+                do_ldd();
+                if (b || c)
+                {
+                    cycle_counter += 5;
+                    pc = (pc - 2) & 0xffff;
+                }
+                return 1;
+            };
+            // 0xb9 : CPDR
+            case 0xb9:
+            {
+                do_cpd();
+                if (!flags.Z && (b || c))
+                {
+                    cycle_counter += 5;
+                    pc = (pc - 2) & 0xffff;
+                }
+                return 1;
+            };
+            // 0xba : INDR
+            case 0xba:
+            {
+                do_ind();
+                if (b)
+                {
+                    cycle_counter += 5;
+                    pc = (pc - 2) & 0xffff;
+                }
+                return 1;
+            };
+            // 0xbb : OTDR
+            case 0xbb:
+            {
+                do_outd();
+                if (b)
+                {
+                    cycle_counter += 5;
+                    pc = (pc - 2) & 0xffff;
+                }
+                return 1;
+            };
+        }
+
+        return 0;
     }
 
     ///////////////////////////////////////////////////////////////////////////////
