@@ -1,2 +1,3 @@
 all:
-	g++ main.cc -o main
+	g++ `sdl-config --cflags --libs` main.cc -lSDL -o main
+	./main

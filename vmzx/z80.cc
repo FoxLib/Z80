@@ -295,11 +295,6 @@ public:
         }
     }
 
-    // The register-to-register loads and ALU instructions
-    //  are all so uniform that we can decode them directly
-    //  instead of going into the instruction array for them.
-    // This function gets the operand for all of these instructions.
-
     int get_operand(int opcode)
     {
         return  ((opcode & 0x07) == 0) ? b :
@@ -326,6 +321,11 @@ public:
         {
             int operand = get_operand(opcode);
 
+            // The register-to-register loads and ALU instructions
+            //  are all so uniform that we can decode them directly
+            //  instead of going into the instruction array for them.
+            // This function gets the operand for all of these instructions.
+
             switch ((opcode & 0x38) >> 3) {
 
                 case 0: b = operand; break;
@@ -346,6 +346,7 @@ public:
             int operand = get_operand(opcode);
 
             switch ((opcode & 0x38) >> 3) {
+
                 case 0: do_add(operand); break;
                 case 1: do_adc(operand); break;
                 case 2: do_sub(operand); break;
@@ -963,18 +964,7 @@ public:
 
                     if (opcode < 0x40)
                     {
-                        int operand;
-                        switch (reg_code) {
-
-                            case 0: operand = b; break;
-                            case 1: operand = c; break;
-                            case 2: operand = d; break;
-                            case 3: operand = e; break;
-                            case 4: operand = h; break;
-                            case 5: operand = l; break;
-                            case 6: operand = mem_read(l | (h << 8)); break;
-                            case 7: operand = a; break;
-                        }
+                        int operand = get_operand(reg_code);
 
                         // Shift/rotate instructions
                         switch (bit_number) {
