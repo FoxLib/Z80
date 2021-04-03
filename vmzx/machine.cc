@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
 class Z80Spectrum : public Z80 {
 protected:
 
@@ -141,6 +140,10 @@ protected:
             case SDLK_BACKQUOTE: key_press(0, 0x01, press); key_press(3, 0x01, press); break; // SS+1 EDIT
             case SDLK_CAPSLOCK:  key_press(0, 0x01, press); key_press(3, 0x02, press); break; // SS+2 CAP (DANGER)
             case SDLK_BACKSPACE: key_press(0, 0x01, press); key_press(4, 0x01, press); break; // SS+0 BS
+            case SDLK_ESCAPE:    key_press(0, 0x01, press); key_press(7, 0x01, press); break; // SS+SPC
+
+            // Отладка
+            case SDLK_F1: if (press) { loadbin("zexall", 0x8000); printf("ZXALL LOADED\n"); } break;
         }
     }
 
@@ -196,6 +199,93 @@ protected:
         }
     }
 
+    // -----------------------------------------------------------------
+    // Работа с видеобуфером
+    // -----------------------------------------------------------------
+
+    uint get_color(int color) {
+
+        switch (color) {
+            case 0:  return 0x000000;
+            case 1:  return 0x0000c0;
+            case 2:  return 0xc00000;
+            case 3:  return 0xc000c0;
+            case 4:  return 0x00c000;
+            case 5:  return 0x00c0c0;
+            case 6:  return 0xc0c000;
+            case 7:  return 0xc0c0c0;
+            case 8:  return 0x000000;
+            case 9:  return 0x0000FF;
+            case 10: return 0xFF0000;
+            case 11: return 0xFF00FF;
+            case 12: return 0x00FF00;
+            case 13: return 0x00FFFF;
+            case 14: return 0xFFFF00;
+            case 15: return 0xFFFFFF;
+        }
+
+        return 0;
+    };
+
+    // Обновить 8 бит
+    void update_charline(int address) {
+
+        int byte = memory[ address ];
+
+        address -= 0x4000;
+
+        int Ya = (address & 0x0700) >> 8;
+        int Yb = (address & 0x00E0) >> 5;
+        int Yc = (address & 0x1800) >> 11;
+
+        int y = Ya + Yb*8 + Yc*64;
+        int x = address & 0x1F;
+
+        int attr    = memory[ 0x5800 + x + ((address & 0x1800) >> 3) + (address & 0xE0) ];
+        int bgcolor = get_color((attr & 0x38) >> 3);
+        int frcolor = get_color((attr & 0x07) + ((attr & 0x40) >> 3));
+        int flash   = (attr & 0x80) ? 1 : 0;
+
+        for (int j = 0; j < 8; j++) {
+
+            int  pix = (byte & (0x80 >> j)) ? 1 : 0;
+
+            // Если есть атрибут мерация, то учитывать это
+            uint clr = (flash ? (pix ^ flash_state) : pix) ? frcolor : bgcolor;
+
+            // Вывести пиксель
+            pset(32 + 8*x + j, 24 + y, clr);
+        }
+    }
+
+    // Обновить все атрибуты
+    void update_attrbox(int address) {
+
+        address -= 0x5800;
+
+        int addr = 0x4000 + (address & 0x0FF) + ((address & 0x0300) << 3);
+        for (int i = 0; i < 8; i++) {
+            update_charline(addr + (i<<8));
+        }
+    };
+
+    // Установка точки
+    void pset(int x, int y, uint color) {
+
+        if (x >= 0 && y >= 0 && x < 320 && y < 240) {
+
+            if (sdl_screen) {
+
+                for (int k = 0; k < 9; k++)
+                    ( (Uint32*)sdl_screen->pixels )[ 3*(x + width*y) + (k%3) + width*(k/3) ] = color;
+
+            } else {
+
+                // stub
+            }
+        }
+    }
+
 public:
 
     // Если sdl=0 то запуск без использования SDL
@@ -213,11 +303,7 @@ public:
         millis_per_frame     = 20;
         max_cycles_per_frame = millis_per_frame*3500;
 
-        // Загрузка базового ROM
-        FILE* fp = fopen("zx48.bin", "rb");
-        if (fp == NULL) { printf("ROM zx48.bin not exists\n"); exit(1); }
-        fread(memory, 1, 16384, fp);
-        fclose(fp);
+        loadbin("zx48.bin", 0);
 
         // Все кнопки вначале отпущены
         for (int i = 0; i < 8; i++) key_states[i] = 0xff;
@@ -285,87 +371,18 @@ public:
         }
     }
 
-    // -----------------------------------------------------------------
+    void setpc(int address) { pc = address & 0xffff; }
 
-    uint get_color(int color) {
+    // Загрузка бинарника
+    void loadbin(const char* filename, int address) {
 
-        switch (color) {
-            case 0:  return 0x000000;
-            case 1:  return 0x0000c0;
-            case 2:  return 0xc00000;
-            case 3:  return 0xc000c0;
-            case 4:  return 0x00c000;
-            case 5:  return 0x00c0c0;
-            case 6:  return 0xc0c000;
-            case 7:  return 0xc0c0c0;
-            case 8:  return 0x000000;
-            case 9:  return 0x0000FF;
-            case 10: return 0xFF0000;
-            case 11: return 0xFF00FF;
-            case 12: return 0x00FF00;
-            case 13: return 0x00FFFF;
-            case 14: return 0xFFFF00;
-            case 15: return 0xFFFFFF;
-        }
-
-        return 0;
-    };
-
-    void update_charline(int address) {
-
-        int byte = memory[ address ];
-
-        address -= 0x4000;
-
-        int Ya = (address & 0x0700) >> 8;
-        int Yb = (address & 0x00E0) >> 5;
-        int Yc = (address & 0x1800) >> 11;
-
-        int y = Ya + Yb*8 + Yc*64;
-        int x = address & 0x1F;
-
-        int attr    = memory[ 0x5800 + x + ((address & 0x1800) >> 3) + (address & 0xE0) ];
-        int bgcolor = get_color((attr & 0x38) >> 3);
-        int frcolor = get_color((attr & 0x07) + ((attr & 0x40) >> 3));
-        int flash   = (attr & 0x80) ? 1 : 0;
-
-        for (int j = 0; j < 8; j++) {
-
-            int  pix = (byte & (0x80 >> j)) ? 1 : 0;
-
-            // Если есть атрибут мерация, то учитывать это
-            uint clr = (flash ? (pix ^ flash_state) : pix) ? frcolor : bgcolor;
-
-            // Вывести пиксель
-            pset(32 + 8*x + j, 24 + y, clr);
-        }
-    }
-
-    // Обновить все атрибуты
-    void update_attrbox(int address) {
-
-        address -= 0x5800;
-
-        int addr = 0x4000 + (address & 0x0FF) + ((address & 0x0300) << 3);
-        for (int i = 0; i < 8; i++) {
-            update_charline(addr + (i<<8));
-        }
-    };
-
-    // Установка точки
-    void pset(int x, int y, uint color) {
-
-        if (x >= 0 && y >= 0 && x < 320 && y < 240) {
-
-            if (sdl_screen) {
-
-                for (int k = 0; k < 9; k++)
-                    ( (Uint32*)sdl_screen->pixels )[ 3*(x + width*y) + (k%3) + width*(k/3) ] = color;
-
-            } else {
-
-                // stub
-            }
-        }
+        // Загрузка базового ROM
+        FILE* fp = fopen(filename, "rb");
+        if (fp == NULL) { printf("ROM %s not exists\n", filename); exit(1); }
+        fseek(fp, 0, SEEK_END);
+        int fsize = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        fread(memory + address, 1, fsize, fp);
+        fclose(fp);
     }
 };
