@@ -162,20 +162,11 @@ public:
         cycle_counter = 0;
     }
 
-    // @TODO реализовать!
-    int mem_read(int address) {
-        return 0;
-    }
-
-    void mem_write(int address, int value) {
-    }
-
-    int io_read(int port) {
-        return 0;
-    }
-
-    void io_write(int port, int data) {
-    }
+    // Интерфейс
+    virtual int  mem_read(int address) { return 0xff; }
+    virtual int  io_read (int port)    { return 0xff; }
+    virtual void mem_write(int address, int data) { }
+    virtual void io_write (int port,    int data) { }
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @public run_instruction
@@ -217,7 +208,7 @@ public:
             else if (doing_delayed_ei) { iff1 = 1; iff2 = 1; }
 
             // And finally clear out the cycle counter for the next instruction
-            //  before returning it to the emulator core.
+            //  before returning it to the emulator
             int retval = cycle_counter;
             cycle_counter = 0;
 
@@ -369,8 +360,1170 @@ public:
         {
             // This is one of the less formulaic instructions;
             //  we'll get the specific function for it from our array.
-            // @TODO          var func = instructions[opcode];
-            // @TODO          func();
+
+            switch (opcode) {
+
+                // 0x00 : NOP
+                case 0x00:
+                {
+                    break;
+                }
+                // 0x01 : LD BC, nn
+                case 0x01:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    c = mem_read(pc);
+
+                    pc = (pc + 1) & 0xffff;
+                    b = mem_read(pc);
+                    break;
+                };
+                // 0x02 : LD (BC), A
+                case 0x02:
+                {
+                    mem_write(c | (b << 8), a);
+                    break;
+                };
+                // 0x03 : INC BC
+                case 0x03:
+                {
+                    int result = (c | (b << 8));
+                    result += 1;
+                    c = result & 0xff;
+                    b = (result & 0xff00) >> 8;
+                    break;
+                };
+                // 0x04 : INC B
+                case 0x04:
+                {
+                    b = do_inc(b);
+                    break;
+                };
+                // 0x05 : DEC B
+                case 0x05:
+                {
+                    b = do_dec(b);
+                    break;
+                };
+                // 0x06 : LD B, n
+                case 0x06:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    b = mem_read(pc);
+                    break;
+                };
+                // 0x07 : RLCA
+                case 0x07:
+                {
+                    // This instruction is implemented as a special case of the
+                    //  more general Z80-specific RLC instruction.
+                    // Specifially, RLCA is a version of RLC A that affects fewer flags.
+                    // The same applies to RRCA, RLA, and RRA.
+                    int temp_s = flags.S, temp_z = flags.Z, temp_p = flags.P;
+                    a = do_rlc(a);
+                    flags.S = temp_s;
+                    flags.Z = temp_z;
+                    flags.P = temp_p;
+                    break;
+                };
+                // 0x08 : EX AF, AF'
+                case 0x08:
+                {
+                    int temp = a;
+                    a = a_prime;
+                    a_prime = temp;
+
+                    temp = get_flags_register();
+                    set_flags_register(get_flags_prime());
+                    set_flags_prime(temp);
+                    break;
+                };
+                // 0x09 : ADD HL, BC
+                case 0x09:
+                {
+                    do_hl_add(c | (b << 8));
+                    break;
+                };
+                // 0x0a : LD A, (BC)
+                case 0x0a:
+                {
+                    a = mem_read(c | (b << 8));
+                    break;
+                };
+                // 0x0b : DEC BC
+                case 0x0b:
+                {
+                    int result = (c | (b << 8));
+                    result -= 1;
+                    c = result & 0xff;
+                    b = (result & 0xff00) >> 8;
+                    break;
+                };
+                // 0x0c : INC C
+                case 0x0c:
+                {
+                    c = do_inc(c);
+                    break;
+                };
+                // 0x0d : DEC C
+                case 0x0d:
+                {
+                    c = do_dec(c);
+                    break;
+                };
+                // 0x0e : LD C, n
+                case 0x0e:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    c = mem_read(pc);
+                    break;
+                };
+                // 0x0f : RRCA
+                case 0x0f:
+                {
+                    int temp_s = flags.S, temp_z = flags.Z, temp_p = flags.P;
+                    a = do_rrc(a);
+                    flags.S = temp_s;
+                    flags.Z = temp_z;
+                    flags.P = temp_p;
+                    break;
+                };
+                // 0x10 : DJNZ nn
+                case 0x10:
+                {
+                    b = (b - 1) & 0xff;
+                    do_conditional_relative_jump(b != 0);
+                    break;
+                };
+                // 0x11 : LD DE, nn
+                case 0x11:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    e = mem_read(pc);
+                    pc = (pc + 1) & 0xffff;
+                    d = mem_read(pc);
+                    break;
+                };
+                // 0x12 : LD (DE), A
+                case 0x12:
+                {
+                    mem_write(e | (d << 8), a);
+                    break;
+                };
+                // 0x13 : INC DE
+                case 0x13:
+                {
+                    int result = (e | (d << 8));
+                    result += 1;
+                    e = result & 0xff;
+                    d = (result & 0xff00) >> 8;
+                    break;
+                };
+                // 0x14 : INC D
+                case 0x14:
+                {
+                    d = do_inc(d);
+                    break;
+                };
+                // 0x15 : DEC D
+                case 0x15:
+                {
+                    d = do_dec(d);
+                    break;
+                };
+                // 0x16 : LD D, n
+                case 0x16:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    d = mem_read(pc);
+                    break;
+                };
+                // 0x17 : RLA
+                case 0x17:
+                {
+                    int temp_s = flags.S, temp_z = flags.Z, temp_p = flags.P;
+                    a = do_rl(a);
+                    flags.S = temp_s;
+                    flags.Z = temp_z;
+                    flags.P = temp_p;
+                    break;
+                };
+                // 0x18 : JR n
+                case 0x18:
+                {
+                    int offset = get_signed_offset_byte(mem_read((pc + 1) & 0xffff));
+                    pc = (pc + offset + 1) & 0xffff;
+                    break;
+                };
+                // 0x19 : ADD HL, DE
+                case 0x19:
+                {
+                    do_hl_add(e | (d << 8));
+                    break;
+                };
+                // 0x1a : LD A, (DE)
+                case 0x1a:
+                {
+                    a = mem_read(e | (d << 8));
+                    break;
+                };
+                // 0x1b : DEC DE
+                case 0x1b:
+                {
+                    int result = (e | (d << 8));
+                    result -= 1;
+                    e = result & 0xff;
+                    d = (result & 0xff00) >> 8;
+                    break;
+                };
+                // 0x1c : INC E
+                case 0x1c:
+                {
+                    e = do_inc(e);
+                    break;
+                };
+                // 0x1d : DEC E
+                case 0x1d:
+                {
+                    e = do_dec(e);
+                    break;
+                };
+                // 0x1e : LD E, n
+                case 0x1e:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    e = mem_read(pc);
+                    break;
+                };
+                // 0x1f : RRA
+                case 0x1f:
+                {
+                    int temp_s = flags.S, temp_z = flags.Z, temp_p = flags.P;
+                    a = do_rr(a);
+                    flags.S = temp_s;
+                    flags.Z = temp_z;
+                    flags.P = temp_p;
+                    break;
+                };
+                // 0x20 : JR NZ, n
+                case 0x20:
+                {
+                    do_conditional_relative_jump(!flags.Z);
+                    break;
+                };
+                // 0x21 : LD HL, nn
+                case 0x21:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    l = mem_read(pc);
+                    pc = (pc + 1) & 0xffff;
+                    h = mem_read(pc);
+                    break;
+                };
+                // 0x22 : LD (nn), HL
+                case 0x22:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    int address = mem_read(pc);
+                    pc = (pc + 1) & 0xffff;
+                    address |= mem_read(pc) << 8;
+
+                    mem_write(address, l);
+                    mem_write((address + 1) & 0xffff, h);
+                    break;
+                };
+                // 0x23 : INC HL
+                case 0x23:
+                {
+                    int result = (l | (h << 8));
+                    result += 1;
+                    l = result & 0xff;
+                    h = (result & 0xff00) >> 8;
+                    break;
+                };
+                // 0x24 : INC H
+                case 0x24:
+                {
+                    h = do_inc(h);
+                    break;
+                };
+                // 0x25 : DEC H
+                case 0x25:
+                {
+                    h = do_dec(h);
+                    break;
+                };
+                // 0x26 : LD H, n
+                case 0x26:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    h = mem_read(pc);
+                    break;
+                };
+                // 0x27 : DAA
+                case 0x27:
+                {
+                    int temp = a;
+                    if (!flags.N)
+                    {
+                        if (flags.H || ((a & 0x0f) > 9))
+                            temp += 0x06;
+                        if (flags.C || (a > 0x99))
+                            temp += 0x60;
+                    }
+                    else
+                    {
+                        if (flags.H || ((a & 0x0f) > 9))
+                            temp -= 0x06;
+                        if (flags.C || (a > 0x99))
+                            temp -= 0x60;
+                    }
+
+                    flags.S = (temp & 0x80) ? 1 : 0;
+                    flags.Z = !(temp & 0xff) ? 1 : 0;
+                    flags.H = ((a & 0x10) ^ (temp & 0x10)) ? 1 : 0;
+                    flags.P = get_parity(temp & 0xff);
+                    // DAA never clears the carry flag if it was already set,
+                    //  but it is able to set the carry flag if it was clear.
+                    // Don't ask me, I don't know.
+                    // Note also that we check for a BCD carry, instead of the usual.
+                    flags.C = (flags.C || (a > 0x99)) ? 1 : 0;
+
+                    a = temp & 0xff;
+
+                    update_xy_flags(a);
+                    break;
+                };
+                // 0x28 : JR Z, n
+                case 0x28:
+                {
+                    do_conditional_relative_jump(!!flags.Z);
+                    break;
+                };
+                // 0x29 : ADD HL, HL
+                case 0x29:
+                {
+                    do_hl_add(l | (h << 8));
+                    break;
+                };
+                // 0x2a : LD HL, (nn)
+                case 0x2a:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    int address = mem_read(pc);
+                    pc = (pc + 1) & 0xffff;
+                    address |= mem_read(pc) << 8;
+
+                    l = mem_read(address);
+                    h = mem_read((address + 1) & 0xffff);
+                    break;
+                };
+                // 0x2b : DEC HL
+                case 0x2b:
+                {
+                    int result = (l | (h << 8));
+                    result -= 1;
+                    l = result & 0xff;
+                    h = (result & 0xff00) >> 8;
+                    break;
+                };
+                // 0x2c : INC L
+                case 0x2c:
+                {
+                    l = do_inc(l);
+                    break;
+                };
+                // 0x2d : DEC L
+                case 0x2d:
+                {
+                    l = do_dec(l);
+                    break;
+                };
+                // 0x2e : LD L, n
+                case 0x2e:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    l = mem_read(pc);
+                    break;
+                };
+                // 0x2f : CPL
+                case 0x2f:
+                {
+                    a = (~a) & 0xff;
+                    flags.N = 1;
+                    flags.H = 1;
+                    update_xy_flags(a);
+                    break;
+                };
+                // 0x30 : JR NC, n
+                case 0x30:
+                {
+                    do_conditional_relative_jump(!flags.C);
+                    break;
+                };
+                // 0x31 : LD SP, nn
+                case 0x31:
+                {
+                    sp =  mem_read((pc + 1) & 0xffff) |
+                    (mem_read((pc + 2) & 0xffff) << 8);
+                    pc = (pc + 2) & 0xffff;
+                    break;
+                };
+                // 0x32 : LD (nn), A
+                case 0x32:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    int address = mem_read(pc);
+                    pc = (pc + 1) & 0xffff;
+                    address |= mem_read(pc) << 8;
+
+                    mem_write(address, a);
+                    break;
+                };
+                // 0x33 : INC SP
+                case 0x33:
+                {
+                    sp = (sp + 1) & 0xffff;
+                    break;
+                };
+                // 0x34 : INC (HL)
+                case 0x34:
+                {
+                    int address = l | (h << 8);
+                    mem_write(address, do_inc(mem_read(address)));
+                    break;
+                };
+                // 0x35 : DEC (HL)
+                case 0x35:
+                {
+                    int address = l | (h << 8);
+                    mem_write(address, do_dec(mem_read(address)));
+                    break;
+                };
+                // 0x36 : LD (HL), n
+                case 0x36:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    mem_write(l | (h << 8), mem_read(pc));
+                    break;
+                };
+                // 0x37 : SCF
+                case 0x37:
+                {
+                    flags.N = 0;
+                    flags.H = 0;
+                    flags.C = 1;
+                    update_xy_flags(a);
+                    break;
+                };
+                // 0x38 : JR C, n
+                case 0x38:
+                {
+                    do_conditional_relative_jump(!!flags.C);
+                    break;
+                };
+                // 0x39 : ADD HL, SP
+                case 0x39:
+                {
+                    do_hl_add(sp);
+                    break;
+                };
+                // 0x3a : LD A, (nn)
+                case 0x3a:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    int address = mem_read(pc);
+                    pc = (pc + 1) & 0xffff;
+                    address |= mem_read(pc) << 8;
+
+                    a = mem_read(address);
+                    break;
+                };
+                // 0x3b : DEC SP
+                case 0x3b:
+                {
+                    sp = (sp - 1) & 0xffff;
+                    break;
+                };
+                // 0x3c : INC A
+                case 0x3c:
+                {
+                    a = do_inc(a);
+                    break;
+                };
+                // 0x3d : DEC A
+                case 0x3d:
+                {
+                    a = do_dec(a);
+                    break;
+                };
+                // 0x3e : LD A, n
+                case 0x3e:
+                {
+                    a = mem_read((pc + 1) & 0xffff);
+                    pc = (pc + 1) & 0xffff;
+                    break;
+                };
+                // 0x3f : CCF
+                case 0x3f:
+                {
+                    flags.N = 0;
+                    flags.H = flags.C;
+                    flags.C = flags.C ? 0 : 1;
+                    update_xy_flags(a);
+                    break;
+                };
+
+                // 0xc0 : RET NZ
+                case 0xc0:
+                {
+                    do_conditional_return(!flags.Z);
+                    break;
+                };
+                // 0xc1 : POP BC
+                case 0xc1:
+                {
+                    int result = pop_word();
+                    c = result & 0xff;
+                    b = (result & 0xff00) >> 8;
+                    break;
+                };
+                // 0xc2 : JP NZ, nn
+                case 0xc2:
+                {
+                    do_conditional_absolute_jump(!flags.Z);
+                    break;
+                };
+                // 0xc3 : JP nn
+                case 0xc3:
+                {
+                    pc =  mem_read((pc + 1) & 0xffff) |
+                    (mem_read((pc + 2) & 0xffff) << 8);
+                    pc = (pc - 1) & 0xffff;
+                    break;
+                };
+                // 0xc4 : CALL NZ, nn
+                case 0xc4:
+                {
+                    do_conditional_call(!flags.Z);
+                    break;
+                };
+                // 0xc5 : PUSH BC
+                case 0xc5:
+                {
+                    push_word(c | (b << 8));
+                    break;
+                };
+                // 0xc6 : ADD A, n
+                case 0xc6:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    do_add(mem_read(pc));
+                    break;
+                };
+                // 0xc7 : RST 00h
+                case 0xc7:
+                {
+                    do_reset(0x00);
+                    break;
+                };
+                // 0xc8 : RET Z
+                case 0xc8:
+                {
+                    do_conditional_return(!!flags.Z);
+                    break;
+                };
+                // 0xc9 : RET
+                case 0xc9:
+                {
+                    pc = (pop_word() - 1) & 0xffff;
+                    break;
+                };
+                // 0xca : JP Z, nn
+                case 0xca:
+                {
+                    do_conditional_absolute_jump(!!flags.Z);
+                    break;
+                };
+                // 0xcb : CB Prefix
+                case 0xcb:
+                {
+                    // R is incremented at the start of the second instruction cycle,
+                    //  before the instruction actually runs.
+                    // The high bit of R is not affected by this increment,
+                    //  it can only be changed using the LD R, A instruction.
+                    r = (r & 0x80) | (((r & 0x7f) + 1) & 0x7f);
+
+                    // We don't have a table for this prefix,
+                    //  the instructions are all so uniform that we can directly decode them.
+                    pc = (pc + 1) & 0xffff;
+                    int opcode = mem_read(pc),
+                    bit_number = (opcode & 0x38) >> 3,
+                    reg_code = opcode & 0x07;
+
+                    if (opcode < 0x40)
+                    {
+                        int operand;
+                        switch (reg_code) {
+
+                            case 0: operand = b; break;
+                            case 1: operand = c; break;
+                            case 2: operand = d; break;
+                            case 3: operand = e; break;
+                            case 4: operand = h; break;
+                            case 5: operand = l; break;
+                            case 6: operand = mem_read(l | (h << 8)); break;
+                            case 7: operand = a; break;
+                        }
+
+                        // Shift/rotate instructions
+                        switch (bit_number) {
+
+                            case 0: operand = do_rlc(operand); break;
+                            case 1: operand = do_rrc(operand); break;
+                            case 2: operand = do_rl (operand); break;
+                            case 3: operand = do_rr (operand); break;
+                            case 4: operand = do_sla(operand); break;
+                            case 5: operand = do_sra(operand); break;
+                            case 6: operand = do_sll(operand); break;
+                            case 7: operand = do_srl(operand); break;
+                        }
+
+                        switch (reg_code) {
+
+                            case 0: b = operand; break;
+                            case 1: c = operand; break;
+                            case 2: d = operand; break;
+                            case 3: e = operand; break;
+                            case 4: h = operand; break;
+                            case 5: l = operand; break;
+                            case 6: mem_write(l | (h << 8), operand); break;
+                            case 7: a = operand; break;
+                        }
+
+                    }
+                    else if (opcode < 0x80)
+                    {
+                        // BIT instructions
+                        if (reg_code == 0)
+                            flags.Z = !(b & (1 << bit_number)) ? 1 : 0;
+                        else if (reg_code == 1)
+                            flags.Z = !(c & (1 << bit_number)) ? 1 : 0;
+                        else if (reg_code == 2)
+                            flags.Z = !(d & (1 << bit_number)) ? 1 : 0;
+                        else if (reg_code == 3)
+                            flags.Z = !(e & (1 << bit_number)) ? 1 : 0;
+                        else if (reg_code == 4)
+                            flags.Z = !(h & (1 << bit_number)) ? 1 : 0;
+                        else if (reg_code == 5)
+                            flags.Z = !(l & (1 << bit_number)) ? 1 : 0;
+                        else if (reg_code == 6)
+                            flags.Z = !((mem_read(l | (h << 8))) & (1 << bit_number)) ? 1 : 0;
+                        else if (reg_code == 7)
+                            flags.Z = !(a & (1 << bit_number)) ? 1 : 0;
+
+                        flags.N = 0;
+                        flags.H = 1;
+                        flags.P = flags.Z;
+                        flags.S = ((bit_number == 7) && !flags.Z) ? 1 : 0;
+                        // For the BIT n, (HL) instruction, the X and Y flags are obtained
+                        //  from what is apparently an internal temporary register used for
+                        //  some of the 16-bit arithmetic instructions.
+                        // I haven't implemented that register here,
+                        //  so for now we'll set X and Y the same way for every BIT opcode,
+                        //  which means that they will usually be wrong for BIT n, (HL).
+                        flags.Y = ((bit_number == 5) && !flags.Z) ? 1 : 0;
+                        flags.X = ((bit_number == 3) && !flags.Z) ? 1 : 0;
+                    }
+                    else if (opcode < 0xc0)
+                    {
+                        // RES instructions
+                        if (reg_code == 0)
+                            b &= (0xff & ~(1 << bit_number));
+                        else if (reg_code == 1)
+                            c &= (0xff & ~(1 << bit_number));
+                        else if (reg_code == 2)
+                            d &= (0xff & ~(1 << bit_number));
+                        else if (reg_code == 3)
+                            e &= (0xff & ~(1 << bit_number));
+                        else if (reg_code == 4)
+                            h &= (0xff & ~(1 << bit_number));
+                        else if (reg_code == 5)
+                            l &= (0xff & ~(1 << bit_number));
+                        else if (reg_code == 6)
+                            mem_write(l | (h << 8), mem_read(l | (h << 8)) & ~(1 << bit_number));
+                        else if (reg_code == 7)
+                            a &= (0xff & ~(1 << bit_number));
+                    }
+                    else
+                    {
+                        // SET instructions
+                        if (reg_code == 0)
+                            b |= (1 << bit_number);
+                        else if (reg_code == 1)
+                            c |= (1 << bit_number);
+                        else if (reg_code == 2)
+                            d |= (1 << bit_number);
+                        else if (reg_code == 3)
+                            e |= (1 << bit_number);
+                        else if (reg_code == 4)
+                            h |= (1 << bit_number);
+                        else if (reg_code == 5)
+                            l |= (1 << bit_number);
+                        else if (reg_code == 6)
+                            mem_write(l | (h << 8), mem_read(l | (h << 8)) | (1 << bit_number));
+                        else if (reg_code == 7)
+                            a |= (1 << bit_number);
+                    }
+
+                    cycle_counter += cycle_counts_cb[opcode];
+                    break;
+                };
+                // 0xcc : CALL Z, nn
+                case 0xcc:
+                {
+                    do_conditional_call(!!flags.Z);
+                    break;
+                };
+                // 0xcd : CALL nn
+                case 0xcd:
+                {
+                    push_word((pc + 3) & 0xffff);
+                    pc =  mem_read((pc + 1) & 0xffff) |
+                    (mem_read((pc + 2) & 0xffff) << 8);
+                    pc = (pc - 1) & 0xffff;
+                    break;
+                };
+                // 0xce : ADC A, n
+                case 0xce:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    do_adc(mem_read(pc));
+                    break;
+                };
+                // 0xcf : RST 08h
+                case 0xcf:
+                {
+                    do_reset(0x08);
+                    break;
+                };
+                // 0xd0 : RET NC
+                case 0xd0:
+                {
+                    do_conditional_return(!flags.C);
+                    break;
+                };
+                // 0xd1 : POP DE
+                case 0xd1:
+                {
+                    int result = pop_word();
+                    e = result & 0xff;
+                    d = (result & 0xff00) >> 8;
+                    break;
+                };
+                // 0xd2 : JP NC, nn
+                case 0xd2:
+                {
+                    do_conditional_absolute_jump(!flags.C);
+                    break;
+                };
+                // 0xd3 : OUT (n), A
+                case 0xd3:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    io_write((a << 8) | mem_read(pc), a);
+                    break;
+                };
+                // 0xd4 : CALL NC, nn
+                case 0xd4:
+                {
+                    do_conditional_call(!flags.C);
+                    break;
+                };
+                // 0xd5 : PUSH DE
+                case 0xd5:
+                {
+                    push_word(e | (d << 8));
+                    break;
+                };
+                // 0xd6 : SUB n
+                case 0xd6:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    do_sub(mem_read(pc));
+                    break;
+                };
+                // 0xd7 : RST 10h
+                case 0xd7:
+                {
+                    do_reset(0x10);
+                    break;
+                };
+                // 0xd8 : RET C
+                case 0xd8:
+                {
+                    do_conditional_return(!!flags.C);
+                    break;
+                };
+                // 0xd9 : EXX
+                case 0xd9:
+                {
+                    int temp = b;
+                    b = b_prime;
+                    b_prime = temp;
+                    temp = c;
+                    c = c_prime;
+                    c_prime = temp;
+                    temp = d;
+                    d = d_prime;
+                    d_prime = temp;
+                    temp = e;
+                    e = e_prime;
+                    e_prime = temp;
+                    temp = h;
+                    h = h_prime;
+                    h_prime = temp;
+                    temp = l;
+                    l = l_prime;
+                    l_prime = temp;
+                    break;
+                };
+                // 0xda : JP C, nn
+                case 0xda:
+                {
+                    do_conditional_absolute_jump(!!flags.C);
+                    break;
+                };
+                // 0xdb : IN A, (n)
+                case 0xdb:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    a = io_read((a << 8) | mem_read(pc));
+                    break;
+                };
+                // 0xdc : CALL C, nn
+                case 0xdc:
+                {
+                    do_conditional_call(!!flags.C);
+                    break;
+                };
+                // 0xdd : DD Prefix (IX instructions)
+/* @TODO
+                case 0xdd:
+                {
+                    // R is incremented at the start of the second instruction cycle,
+                    //  before the instruction actually runs.
+                    // The high bit of R is not affected by this increment,
+                    //  it can only be changed using the LD R, A instruction.
+                    r = (r & 0x80) | (((r & 0x7f) + 1) & 0x7f);
+
+                    pc = (pc + 1) & 0xffff;
+                    int opcode = mem_read(pc),
+                    func = dd_case opcode];
+
+                    if (func)
+                    {
+                        func();
+                        cycle_counter += cycle_counts_dd[opcode];
+                    }
+                    else
+                    {
+                        // Apparently if a DD opcode doesn't exist,
+                        //  it gets treated as an unprefixed opcode.
+                        // What we'll do to handle that is just back up the
+                        //  program counter, so that this byte gets decoded
+                        //  as a normal instruction.
+                        pc = (pc - 1) & 0xffff;
+                        // And we'll add in the cycle count for a NOP.
+                        cycle_counter += cycle_counts[0];
+                    }
+                    break;
+                };
+*/
+                // 0xde : SBC n
+                case 0xde:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    do_sbc(mem_read(pc));
+                    break;
+                };
+                // 0xdf : RST 18h
+                case 0xdf:
+                {
+                    do_reset(0x18);
+                    break;
+                };
+                // 0xe0 : RET PO
+                case 0xe0:
+                {
+                    do_conditional_return(!flags.P);
+                    break;
+                };
+                // 0xe1 : POP HL
+                case 0xe1:
+                {
+                    int result = pop_word();
+                    l = result & 0xff;
+                    h = (result & 0xff00) >> 8;
+                    break;
+                };
+                // 0xe2 : JP PO, (nn)
+                case 0xe2:
+                {
+                    do_conditional_absolute_jump(!flags.P);
+                    break;
+                };
+                // 0xe3 : EX (SP), HL
+                case 0xe3:
+                {
+                    int temp = mem_read(sp);
+                    mem_write(sp, l);
+                    l = temp;
+                    temp = mem_read((sp + 1) & 0xffff);
+                    mem_write((sp + 1) & 0xffff, h);
+                    h = temp;
+                    break;
+                };
+                // 0xe4 : CALL PO, nn
+                case 0xe4:
+                {
+                    do_conditional_call(!flags.P);
+                    break;
+                };
+                // 0xe5 : PUSH HL
+                case 0xe5:
+                {
+                    push_word(l | (h << 8));
+                    break;
+                };
+                // 0xe6 : AND n
+                case 0xe6:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    do_and(mem_read(pc));
+                    break;
+                };
+                // 0xe7 : RST 20h
+                case 0xe7:
+                {
+                    do_reset(0x20);
+                    break;
+                };
+                // 0xe8 : RET PE
+                case 0xe8:
+                {
+                    do_conditional_return(!!flags.P);
+                    break;
+                };
+                // 0xe9 : JP (HL)
+                case 0xe9:
+                {
+                    pc = l | (h << 8);
+                    pc = (pc - 1) & 0xffff;
+                    break;
+                };
+                // 0xea : JP PE, nn
+                case 0xea:
+                {
+                    do_conditional_absolute_jump(!!flags.P);
+                    break;
+                };
+                // 0xeb : EX DE, HL
+                case 0xeb:
+                {
+                    int temp = d;
+                    d = h;
+                    h = temp;
+                    temp = e;
+                    e = l;
+                    l = temp;
+                    break;
+                };
+                // 0xec : CALL PE, nn
+                case 0xec:
+                {
+                    do_conditional_call(!!flags.P);
+                    break;
+                };
+                // 0xed : ED Prefix
+/* @TODO
+                case 0xed:
+                {
+                    // R is incremented at the start of the second instruction cycle,
+                    //  before the instruction actually runs.
+                    // The high bit of R is not affected by this increment,
+                    //  it can only be changed using the LD R, A instruction.
+                    r = (r & 0x80) | (((r & 0x7f) + 1) & 0x7f);
+
+                    pc = (pc + 1) & 0xffff;
+                    int opcode = mem_read(pc),
+                    func = ed_case opcode];
+
+                    if (func)
+                    {
+                        func();
+                        cycle_counter += cycle_counts_ed[opcode];
+                    }
+                    else
+                    {
+                        // If the opcode didn't exist, the whole thing is a two-byte NOP.
+                        cycle_counter += cycle_counts[0];
+                    }
+                    break;
+                };
+*/
+                // 0xee : XOR n
+                case 0xee:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    do_xor(mem_read(pc));
+                    break;
+                };
+                // 0xef : RST 28h
+                case 0xef:
+                {
+                    do_reset(0x28);
+                    break;
+                };
+                // 0xf0 : RET P
+                case 0xf0:
+                {
+                    do_conditional_return(!flags.S);
+                    break;
+                };
+                // 0xf1 : POP AF
+                case 0xf1:
+                {
+                    int result = pop_word();
+                    set_flags_register(result & 0xff);
+                    a = (result & 0xff00) >> 8;
+                    break;
+                };
+                // 0xf2 : JP P, nn
+                case 0xf2:
+                {
+                    do_conditional_absolute_jump(!flags.S);
+                    break;
+                };
+                // 0xf3 : DI
+                case 0xf3:
+                {
+                    // DI doesn't actually take effect until after the next instruction.
+                    do_delayed_di = true;
+                    break;
+                };
+                // 0xf4 : CALL P, nn
+                case 0xf4:
+                {
+                    do_conditional_call(!flags.S);
+                    break;
+                };
+                // 0xf5 : PUSH AF
+                case 0xf5:
+                {
+                    push_word(get_flags_register() | (a << 8));
+                    break;
+                };
+                // 0xf6 : OR n
+                case 0xf6:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    do_or(mem_read(pc));
+                    break;
+                };
+                // 0xf7 : RST 30h
+                case 0xf7:
+                {
+                    do_reset(0x30);
+                    break;
+                };
+                // 0xf8 : RET M
+                case 0xf8:
+                {
+                    do_conditional_return(!!flags.S);
+                    break;
+                };
+                // 0xf9 : LD SP, HL
+                case 0xf9:
+                {
+                    sp = l | (h << 8);
+                    break;
+                };
+                // 0xfa : JP M, nn
+                case 0xfa:
+                {
+                    do_conditional_absolute_jump(!!flags.S);
+                    break;
+                };
+                // 0xfb : EI
+                case 0xfb:
+                {
+                    // EI doesn't actually take effect until after the next instruction.
+                    do_delayed_ei = true;
+                    break;
+                };
+                // 0xfc : CALL M, nn
+                case 0xfc:
+                {
+                    do_conditional_call(!!flags.S);
+                    break;
+                };
+                // 0xfd : FD Prefix (IY instructions)
+/* @TODO
+                case 0xfd:
+                {
+                    // R is incremented at the start of the second instruction cycle,
+                    //  before the instruction actually runs.
+                    // The high bit of R is not affected by this increment,
+                    //  it can only be changed using the LD R, A instruction.
+                    r = (r & 0x80) | (((r & 0x7f) + 1) & 0x7f);
+
+                    pc = (pc + 1) & 0xffff;
+                    int opcode = mem_read(pc),
+                    func = dd_case opcode];
+
+                    if (func)
+                    {
+                        // Rather than copy and paste all the IX instructions into IY instructions,
+                        //  what we'll do is sneakily copy IY into IX, run the IX instruction,
+                        //  and then copy the result into IY and restore the old IX.
+                        int temp = ix;
+                        ix = iy;
+                        //func = func.bind(this);
+                        func();
+                        iy = ix;
+                        ix = temp;
+
+                        cycle_counter += cycle_counts_dd[opcode];
+                    }
+                    else
+                    {
+                        // Apparently if an FD opcode doesn't exist,
+                        //  it gets treated as an unprefixed opcode.
+                        // What we'll do to handle that is just back up the
+                        //  program counter, so that this byte gets decoded
+                        //  as a normal instruction.
+                        pc = (pc - 1) & 0xffff;
+                        // And we'll add in the cycle count for a NOP.
+                        cycle_counter += cycle_counts[0];
+                    }
+                    break;
+                };
+*/
+                // 0xfe : CP n
+                case 0xfe:
+                {
+                    pc = (pc + 1) & 0xffff;
+                    do_cp(mem_read(pc));
+                    break;
+                };
+                // 0xff : RST 38h
+                case 0xff:
+                {
+                    do_reset(0x38);
+                    break;
+                };
+            }
         }
 
         // Update the cycle counter with however many cycles
@@ -380,6 +1533,29 @@ public:
 
         cycle_counter += cycle_counts[opcode];
     }
+
+    ///////////////////////////////////////////////////////////////////////////////
+    /// This table of ED opcodes is pretty sparse;
+    ///  there are not very many valid ED-prefixed opcodes in the Z80,
+    ///  and many of the ones that are valid are not documented.
+    ///////////////////////////////////////////////////////////////////////////////
+
+    // Исполнение инструкции EDh
+    void ed_instructions(int opcode) {
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////
+    /// Like ED, this table is quite sparse,
+    ///  and many of the opcodes here are also undocumented.
+    /// The undocumented instructions here are those that deal with only one byte
+    ///  of the two-byte IX register; the bytes are designed IXH and IXL here.
+    ///////////////////////////////////////////////////////////////////////////////
+
+    // Исполнение инструкции DDh
+    void dd_instructions(int opcode) {
+    }
+
+    // -----------------------------------------------------------------
 
     // Pretty obvious what this function does; given a 16-bit value,
     //  decrement the stack pointer, write the high byte to the new
@@ -448,6 +1624,143 @@ public:
         }
 
         return value;
+    };
+
+    // We need the whole F register for some reason.
+    //  probably a PUSH AF instruction,
+    //  so make the F register out of our separate flags.
+    int get_flags_register()
+    {
+        return  (flags.S << 7) |
+                (flags.Z << 6) |
+                (flags.Y << 5) |
+                (flags.H << 4) |
+                (flags.X << 3) |
+                (flags.P << 2) |
+                (flags.N << 1) |
+                (flags.C);
+    };
+
+    // This is the same as the above for the F' register.
+    int get_flags_prime()
+    {
+        return  (flags_prime.S << 7) |
+                (flags_prime.Z << 6) |
+                (flags_prime.Y << 5) |
+                (flags_prime.H << 4) |
+                (flags_prime.X << 3) |
+                (flags_prime.P << 2) |
+                (flags_prime.N << 1) |
+                (flags_prime.C);
+    };
+
+    // We need to set the F register, probably for a POP AF,
+    //  so break out the given value into our separate flags.
+    void set_flags_register(int operand)
+    {
+        flags.S = (operand & 0x80) >> 7;
+        flags.Z = (operand & 0x40) >> 6;
+        flags.Y = (operand & 0x20) >> 5;
+        flags.H = (operand & 0x10) >> 4;
+        flags.X = (operand & 0x08) >> 3;
+        flags.P = (operand & 0x04) >> 2;
+        flags.N = (operand & 0x02) >> 1;
+        flags.C = (operand & 0x01);
+    };
+
+    // Again, this is the same as the above for F'.
+    void set_flags_prime(int operand)
+    {
+        flags_prime.S = (operand & 0x80) >> 7;
+        flags_prime.Z = (operand & 0x40) >> 6;
+        flags_prime.Y = (operand & 0x20) >> 5;
+        flags_prime.H = (operand & 0x10) >> 4;
+        flags_prime.X = (operand & 0x08) >> 3;
+        flags_prime.P = (operand & 0x04) >> 2;
+        flags_prime.N = (operand & 0x02) >> 1;
+        flags_prime.C = (operand & 0x01);
+    };
+
+    ///////////////////////////////////////////////////////////////////////////////
+    /// Now, the way most instructions work in this emulator is that they set up
+    ///  their operands according to their addressing mode, and then they call a
+    ///  utility function that handles all variations of that instruction.
+    /// Those utility functions begin here.
+    ///////////////////////////////////////////////////////////////////////////////
+    void do_conditional_absolute_jump(int condition)
+    {
+        // This function implements the JP [condition],nn instructions.
+        if (condition)
+        {
+            // We're taking this jump, so write the new PC,
+            //  and then decrement the thing we just wrote,
+            //  because the instruction decoder increments the PC
+            //  unconditionally at the end of every instruction
+            //  and we need to counteract that so we end up at the jump target.
+            pc =  mem_read((pc + 1) & 0xffff) |
+                 (mem_read((pc + 2) & 0xffff) << 8);
+            pc = (pc - 1) & 0xffff;
+        }
+        else
+        {
+            // We're not taking this jump, just move the PC past the operand.
+            pc = (pc + 2) & 0xffff;
+        }
+    };
+
+    void do_conditional_relative_jump(int condition)
+    {
+        // This function implements the JR [condition],n instructions.
+        if (condition)
+        {
+            // We need a few more cycles to actually take the jump.
+            cycle_counter += 5;
+
+            // Calculate the offset specified by our operand.
+            int offset = get_signed_offset_byte(mem_read((pc + 1) & 0xffff));
+
+            // Add the offset to the PC, also skipping past this instruction.
+            pc = (pc + offset + 1) & 0xffff;
+        }
+        else
+        {
+            // No jump happening, just skip the operand.
+            pc = (pc + 1) & 0xffff;
+        }
+    };
+
+    // This function is the CALL [condition],nn instructions.
+    // If you've seen the previous functions, you know this drill.
+    void do_conditional_call(int condition)
+    {
+        if (condition)
+        {
+            cycle_counter += 7;
+            push_word((pc + 3) & 0xffff);
+            pc = mem_read((pc + 1) & 0xffff) |
+                (mem_read((pc + 2) & 0xffff) << 8);
+            pc = (pc - 1) & 0xffff;
+        }
+        else
+        {
+            pc = (pc + 2) & 0xffff;
+        }
+    };
+
+    void do_conditional_return(int condition)
+    {
+        if (condition)
+        {
+            cycle_counter += 6;
+            pc = (pop_word() - 1) & 0xffff;
+        }
+    };
+
+    // The RST [address] instructions go through here.
+    void do_reset(int address)
+    {
+        push_word((pc + 1) & 0xffff);
+        pc = (address - 1) & 0xffff;
     };
 
     // This is the ADD A, [operand] instructions.
@@ -672,7 +1985,7 @@ public:
 
     void do_neg()
     {
-        // This instruction is defined to not alter the register if it === 0x80.
+        // This instruction is defined to not alter the register if it == 0x80.
         if (a != 0x80)
         {
             // This is a signed operation, so convert A to a signed value.
