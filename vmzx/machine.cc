@@ -28,21 +28,21 @@ protected:
     // Обработка одного кадрового фрейма
     void frame() {
 
-        int fine_x = 0;
-        int border_x = 0, border_y = 0;
+        int fine_x    = 0;
+        int border_x  = 0, border_y = 0;
         int first_int = 1;
 
         // Выполнить необходимое количество циклов
         while (t_states_cycle < max_cycles_per_frame) {
 
             // Вызов прерывания на определенной строке
-            if (first_int && border_y == 198) { interrupt(0, 0xff); first_int = 0; }
+            // if (first_int && border_y == 198) { interrupt(0, 0xff); first_int = 0; }
 
             int t_states = run_instruction();
             t_states_cycle += t_states;
 
             // Каждый такт добавляет x + (320*240)/(70000)
-            for (int t = 0; t < t_states; t++) {
+            for (int tx = 0; tx < t_states; tx++) {
 
                 fine_x += (320*240);
 
@@ -64,6 +64,7 @@ protected:
             }
         }
 
+        interrupt(0, 0xff);
         t_states_cycle %= max_cycles_per_frame;
     }
 
@@ -274,8 +275,8 @@ protected:
         address -= 0x5800;
 
         int addr = 0x4000 + (address & 0x0FF) + ((address & 0x0300) << 3);
-        for (int i = 0; i < 8; i++) {
-            update_charline(addr + (i<<8));
+        for (int _i = 0; _i < 8; _i++) {
+            update_charline(addr + (_i<<8));
         }
     };
 
@@ -316,7 +317,7 @@ public:
         loadbin("zx48.bin", 0);
 
         // Все кнопки вначале отпущены
-        for (int i = 0; i < 8; i++) key_states[i] = 0xff;
+        for (int _i = 0; _i < 8; _i++) key_states[_i] = 0xff;
 
         // Инициализация SDL
         if (sdl) {
@@ -371,7 +372,7 @@ public:
                     flash_counter = 0;
                     flash_state   = !flash_state;
 
-                    for (int i = 0x5800; i < 0x5b00; i++) update_attrbox(i);
+                    for (int _i = 0x5800; _i < 0x5b00; _i++) update_attrbox(_i);
                 }
 
                 SDL_Flip(sdl_screen);
@@ -381,7 +382,16 @@ public:
         }
     }
 
-    void setpc(int address) { pc = address & 0xffff; }
+    // Разбор аргументов
+    void args(int argc, char** argv) {
+
+        if (argc > 1) {
+
+            // Ожидается .z80 снапшот
+            loadz80(argv[1]);
+        }
+
+    }
 
     // Загрузка бинарника
     void loadbin(const char* filename, int address) {
@@ -394,5 +404,108 @@ public:
         fseek(fp, 0, SEEK_SET);
         fread(memory + address, 1, fsize, fp);
         fclose(fp);
+    }
+
+    // Загрузка снапшота
+    // https://worldofspectrum.org/faq/reference/z80format.htm
+    void loadz80(const char* filename) {
+
+        unsigned char data[128*1024];
+
+        FILE* fp = fopen(filename, "rb");
+        if (fp == NULL) { printf("Can't load file %s\n", filename); exit(1); }
+        fseek(fp, 0, SEEK_END);
+        int fsize = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        fread(data, 1, fsize, fp);
+        fclose(fp);
+
+        // Установка регистров
+        a  = data[0];
+        set_flags_register(data[1]);
+        c  = data[2];
+        b  = data[3];
+        l  = data[4];
+        h  = data[5];
+        pc = data[6] + 256*data[7];
+        sp = data[8] + 256*data[9];
+        i  = data[10];
+        r  = data[11];
+        e  = data[13];
+        d  = data[14];
+
+        c_prime = data[15];
+        b_prime = data[16];
+        e_prime = data[17];
+        d_prime = data[18];
+        l_prime = data[19];
+        h_prime = data[20];
+        a_prime = data[21];
+        set_flags_prime(data[22]);
+
+        iy      = data[23] + 256*data[24];
+        ix      = data[25] + 256*data[26];
+        iff1    = data[27] ? 1 : 0;
+        iff2    = data[28] ? 1 : 0;
+        imode   = data[29] & 3;
+
+        if (pc == 0) {
+            printf("Non 48k valid snapshot\n");
+            exit(1);
+        }
+
+        // старший бит R
+        r |= ((data[12] & 1) << 7);
+
+        // цвет бордюда
+        io_write(0xFE, (data[12] & 0x0E) >> 1);
+
+        int rle    = (data[12] & 0x20) == 0x20 ? 1 : 0;
+        int addr   = 0x4000;
+        int cursor = 30;
+
+        if (rle) {
+
+            while (cursor < fsize) {
+
+                // EOF
+                if (data[cursor] == 0x00 && data[cursor+1] == 0xED && data[cursor+2] == 0xED && data[cursor+3] == 0x00) {
+                    break;
+                }
+
+                // Процедура декомпрессии
+                if (data[cursor] == 0xED && data[cursor+1] == 0xED) {
+
+                    for (int t_ = 0; t_ < data[cursor+2]; t_++) {
+
+                        if (addr >= 0x4000 && addr <= 0xFFFF)
+                            mem_write(addr, data[cursor+3]);
+
+                        addr++;
+                    }
+
+                    cursor += 4;
+
+                } else {
+
+                    if (addr >= 0x4000 && addr <= 0xFFFF)
+                        mem_write(addr, data[cursor]);
+
+                    addr++;
+                    cursor++;
+                }
+            }
+
+        } else {
+
+            while (addr < 65536 && cursor < fsize) {
+
+                if (addr >= 0x4000 && addr <= 0xFFFF)
+                    mem_write(addr, data[cursor]);
+
+                addr++;
+                cursor++;
+            }
+        }
     }
 };
