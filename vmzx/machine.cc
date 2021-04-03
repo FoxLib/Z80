@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+
 class Z80Spectrum : public Z80 {
 protected:
 
@@ -21,89 +22,9 @@ protected:
 
     int   flash_state, flash_counter;
     uint  border_color;
+    int   key_states[8];
 
-    int t_states_cycle, millis_per_frame, max_cycles_per_frame;
-
-public:
-
-    // Если sdl=0 то запуск без использования SDL
-    Z80Spectrum(int sdl) {
-
-        sdl_screen  = NULL;
-        width       = 320*3;
-        height      = 240*3;
-
-        t_states_cycle = 0;
-        flash_state    = 0;
-        flash_counter  = 0;
-        ms_clock_old   = 0;
-
-        millis_per_frame     = 20;
-        max_cycles_per_frame = millis_per_frame*3500;
-
-        // Загрузка базового ROM
-        FILE* fp = fopen("zx48.bin", "rb");
-        if (fp == NULL) { printf("ROM zx48.bin not exists\n"); exit(1); }
-        fread(memory, 1, 16384, fp);
-        fclose(fp);
-
-        // Инициализация SDL
-        if (sdl) {
-
-            SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-            SDL_EnableUNICODE(1);
-
-            sdl_screen = SDL_SetVideoMode(width, height, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
-            SDL_WM_SetCaption("ZX Spectrum Virtual Machine", 0);
-            SDL_EnableKeyRepeat(500, 30);
-        }
-    }
-
-    ~Z80Spectrum() {
-
-        if (sdl_screen) SDL_Quit();
-    }
-
-    /**
-     * Основной цикл работы VM
-     */
-    void main() {
-
-        while (1) {
-
-            // Регистрация событий
-            while (SDL_PollEvent(& event)) {
-                switch (event.type) {
-                    case SDL_QUIT: return;
-                }
-            }
-
-            // Вычисление разности времени
-            ftime(&ms_clock);
-            int time_curr = ms_clock.millitm;
-            int time_diff = time_curr - ms_clock_old;
-            if (time_diff < 0) time_diff += 1000;
-
-            // Если прошло 20 мс
-            if (time_diff >= 20) {
-
-                ms_clock_old = time_curr;
-
-                frame();
-
-                // Мерцающие элементы
-                flash_counter++;
-                if (flash_counter >= 25) {
-                    flash_counter = 0;
-                    flash_state   = !flash_state;
-                }
-
-                SDL_Flip(sdl_screen);
-            }
-
-            SDL_Delay(1);
-        }
-    }
+    int   t_states_cycle, millis_per_frame, max_cycles_per_frame;
 
     // Обработка одного кадрового фрейма
     void frame() {
@@ -146,12 +67,89 @@ public:
         t_states_cycle %= max_cycles_per_frame;
     }
 
+    void key_press(int row, int mask, int press) {
+
+        if (press) {
+            key_states[ row ] &= ~mask;
+        } else {
+            key_states[ row ] |=  mask;
+        }
+    }
+
+    // Нажатие клавиши
+    // https://www.libsdl.org/release/SDL-1.2.15/docs/html/sdlkey.html
+    void keyb(int press, SDL_KeyboardEvent* eventkey) {
+
+        int key = eventkey->keysym.sym;
+
+        switch (key) {
+
+            // Первый ряд
+            case SDLK_1: key_press(3, 0x01, press); break;
+            case SDLK_2: key_press(3, 0x02, press); break;
+            case SDLK_3: key_press(3, 0x04, press); break;
+            case SDLK_4: key_press(3, 0x08, press); break;
+            case SDLK_5: key_press(3, 0x10, press); break;
+            case SDLK_6: key_press(4, 0x10, press); break;
+            case SDLK_7: key_press(4, 0x08, press); break;
+            case SDLK_8: key_press(4, 0x04, press); break;
+            case SDLK_9: key_press(4, 0x02, press); break;
+            case SDLK_0: key_press(4, 0x01, press); break;
+
+            // Второй ряд
+            case SDLK_q: key_press(2, 0x01, press); break;
+            case SDLK_w: key_press(2, 0x02, press); break;
+            case SDLK_e: key_press(2, 0x04, press); break;
+            case SDLK_r: key_press(2, 0x08, press); break;
+            case SDLK_t: key_press(2, 0x10, press); break;
+            case SDLK_y: key_press(5, 0x10, press); break;
+            case SDLK_u: key_press(5, 0x08, press); break;
+            case SDLK_i: key_press(5, 0x04, press); break;
+            case SDLK_o: key_press(5, 0x02, press); break;
+            case SDLK_p: key_press(5, 0x01, press); break;
+
+            // Третий ряд
+            case SDLK_a: key_press(1, 0x01, press); break;
+            case SDLK_s: key_press(1, 0x02, press); break;
+            case SDLK_d: key_press(1, 0x04, press); break;
+            case SDLK_f: key_press(1, 0x08, press); break;
+            case SDLK_g: key_press(1, 0x10, press); break;
+            case SDLK_h: key_press(6, 0x10, press); break;
+            case SDLK_j: key_press(6, 0x08, press); break;
+            case SDLK_k: key_press(6, 0x04, press); break;
+            case SDLK_l: key_press(6, 0x02, press); break;
+            case SDLK_RETURN: key_press(6, 0x01, press); break;
+
+            // Четвертый ряд
+            case SDLK_LSHIFT: key_press(0, 0x01, press); break;
+            case SDLK_z: key_press(0, 0x02, press); break;
+            case SDLK_x: key_press(0, 0x04, press); break;
+            case SDLK_c: key_press(0, 0x08, press); break;
+            case SDLK_v: key_press(0, 0x10, press); break;
+            case SDLK_b: key_press(7, 0x10, press); break;
+            case SDLK_n: key_press(7, 0x08, press); break;
+            case SDLK_m: key_press(7, 0x04, press); break;
+            case SDLK_RSHIFT: key_press(7, 0x02, press); break;
+            case SDLK_SPACE:  key_press(7, 0x01, press); break;
+
+            // Специальные
+            case SDLK_LEFT:  key_press(0, 0x01, press); key_press(3, 0x10, press); break; // SS+5
+            case SDLK_RIGHT: key_press(0, 0x01, press); key_press(4, 0x04, press); break; // SS+8
+            case SDLK_UP:    key_press(0, 0x01, press); key_press(4, 0x08, press); break; // SS+7
+            case SDLK_DOWN:  key_press(0, 0x01, press); key_press(4, 0x10, press); break; // SS+6
+            case SDLK_TAB:   key_press(0, 0x01, press); key_press(7, 0x02, press); break; //  SS+CS
+            case SDLK_BACKQUOTE: key_press(0, 0x01, press); key_press(3, 0x01, press); break; // SS+1 EDIT
+            case SDLK_CAPSLOCK:  key_press(0, 0x01, press); key_press(3, 0x02, press); break; // SS+2 CAP (DANGER)
+            case SDLK_BACKSPACE: key_press(0, 0x01, press); key_press(4, 0x01, press); break; // SS+0 BS
+        }
+    }
+
     /*
      * Интерфейс
      */
 
     // Чтение байта
-    int  mem_read(int address) {
+    int mem_read(int address) {
         return memory[address & 0xffff];
     }
 
@@ -171,6 +169,22 @@ public:
     // Чтение из порта
     int io_read (int port) {
 
+        // Чтение клавиатуры
+        if ((port & 1) == 0) {
+
+            int result = 0xff;
+            for (int row = 0; row < 8; row++) {
+                if (!(port & (1 << (row + 8)))) {
+                    result &= key_states[ row ];
+                }
+            }
+            return result;
+        }
+        // Kempston Joystick
+        else if ((port & 0x00e0) == 0x0000) {
+            return 0x00;
+        }
+
         return 0xff;
     }
 
@@ -179,6 +193,95 @@ public:
 
         if ((port & 0xFF) == 0xFE) {
             border_color = get_color(data & 7);
+        }
+    }
+
+public:
+
+    // Если sdl=0 то запуск без использования SDL
+    Z80Spectrum(int sdl) {
+
+        sdl_screen = NULL;
+        width      = 320*3;
+        height     = 240*3;
+
+        t_states_cycle = 0;
+        flash_state    = 0;
+        flash_counter  = 0;
+        ms_clock_old   = 0;
+
+        millis_per_frame     = 20;
+        max_cycles_per_frame = millis_per_frame*3500;
+
+        // Загрузка базового ROM
+        FILE* fp = fopen("zx48.bin", "rb");
+        if (fp == NULL) { printf("ROM zx48.bin not exists\n"); exit(1); }
+        fread(memory, 1, 16384, fp);
+        fclose(fp);
+
+        // Все кнопки вначале отпущены
+        for (int i = 0; i < 8; i++) key_states[i] = 0xff;
+
+        // Инициализация SDL
+        if (sdl) {
+
+            SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+            SDL_EnableUNICODE(1);
+
+            sdl_screen = SDL_SetVideoMode(width, height, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
+            SDL_WM_SetCaption("ZX Spectrum Virtual Machine", 0);
+            SDL_EnableKeyRepeat(500, 30);
+        }
+    }
+
+    ~Z80Spectrum() {
+
+        if (sdl_screen) SDL_Quit();
+    }
+
+    /**
+     * Основной цикл работы VM
+     */
+    void main() {
+
+        while (1) {
+
+            // Регистрация событий
+            while (SDL_PollEvent(& event)) {
+                switch (event.type) {
+
+                    case SDL_QUIT: return;
+                    case SDL_KEYDOWN: keyb(1, & event.key); break;
+                    case SDL_KEYUP:   keyb(0, & event.key); break;
+                }
+            }
+
+            // Вычисление разности времени
+            ftime(&ms_clock);
+            int time_curr = ms_clock.millitm;
+            int time_diff = time_curr - ms_clock_old;
+            if (time_diff < 0) time_diff += 1000;
+
+            // Если прошло 20 мс
+            if (time_diff >= 20) {
+
+                ms_clock_old = time_curr;
+
+                frame();
+
+                // Мерцающие элементы
+                flash_counter++;
+                if (flash_counter >= 25) {
+                    flash_counter = 0;
+                    flash_state   = !flash_state;
+
+                    for (int i = 0x5800; i < 0x5b00; i++) update_attrbox(i);
+                }
+
+                SDL_Flip(sdl_screen);
+            }
+
+            SDL_Delay(1);
         }
     }
 
