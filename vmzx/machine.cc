@@ -20,7 +20,7 @@ protected:
     unsigned int    ms_clock_old;
 
     int   flash_state, flash_counter;
-    uint  border_color;
+    uint  border_color, border_id;
     int   key_states[8];
 
     int   t_states_cycle, millis_per_frame, max_cycles_per_frame;
@@ -155,6 +155,8 @@ protected:
 
             // Отладка
             case SDLK_F1: if (press) { loadbin("zexall", 0x8000); printf("ZXALL LOADED\n"); } break;
+            case SDLK_F2: savez80("autosave.z80"); break;
+            case SDLK_F3: loadz80("autosave.z80"); break;
         }
     }
 
@@ -206,6 +208,8 @@ protected:
     void io_write(int port, int data) {
 
         if ((port & 0xFF) == 0xFE) {
+
+            border_id    = data & 7;
             border_color = get_color(data & 7);
         }
     }
@@ -386,9 +390,7 @@ public:
     void args(int argc, char** argv) {
 
         if (argc > 1) {
-
-            // Ожидается .z80 снапшот
-            loadz80(argv[1]);
+            loadz80(argv[1]); // Ожидается .z80 снапшот
         }
 
     }
@@ -507,5 +509,51 @@ public:
                 cursor++;
             }
         }
+    }
+
+    void savez80(const char* filename) {
+
+        unsigned char data[64];
+
+        FILE* fp = fopen(filename, "wb+");
+
+        // Установка регистров
+        data[0] = a;
+        data[1] = get_flags_register();
+        data[2] = c;
+        data[3] = b;
+        data[4] = l;
+        data[5] = h;
+        data[6] = pc & 0xff;
+        data[7] = (pc >> 8) & 0xff;
+        data[8] = sp & 0xff;
+        data[9] = (sp >> 8) & 0xff;
+        data[10] = i;
+        data[11] = (r & 0x7f);
+        data[12] = (r >> 7) | ((border_id&7)<<1) | 0x00; // старший бит R, RLE=0
+        data[13] = e;
+        data[14] = d;
+        data[15] = c_prime;
+        data[16] = b_prime;
+        data[17] = e_prime;
+        data[18] = d_prime;
+        data[19] = l_prime;
+        data[20] = h_prime;
+        data[21] = a_prime;
+        data[22] = get_flags_prime();
+
+        data[23] = iy & 0xff;
+        data[24] = (iy >> 8) & 0xff;
+
+        data[25] = ix & 0xff;
+        data[26] = (ix >> 8) & 0xff;
+
+        data[27] = iff1 ? 1 : 0;
+        data[28] = iff2 ? 1 : 0;
+        data[29] = imode;
+
+        fwrite(data, 1, 30, fp);
+        fwrite(memory + 0x4000, 1, 0xc000, fp);
+        fclose(fp);
     }
 };
