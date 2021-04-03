@@ -1208,7 +1208,6 @@ public:
                     break;
                 };
                 // 0xdd : DD Prefix (IX instructions)
-/* @TODO
                 case 0xdd:
                 {
                     // R is incremented at the start of the second instruction cycle,
@@ -1218,12 +1217,10 @@ public:
                     r = (r & 0x80) | (((r & 0x7f) + 1) & 0x7f);
 
                     pc = (pc + 1) & 0xffff;
-                    int opcode = mem_read(pc),
-                    func = dd_instructions[opcode];
+                    int opcode = mem_read(pc);
 
-                    if (func)
+                    if (dd_instructions(opcode))
                     {
-                        func();
                         cycle_counter += cycle_counts_dd[opcode];
                     }
                     else
@@ -1234,12 +1231,13 @@ public:
                         //  program counter, so that this byte gets decoded
                         //  as a normal instruction.
                         pc = (pc - 1) & 0xffff;
+
                         // And we'll add in the cycle count for a NOP.
                         cycle_counter += cycle_counts[0];
                     }
                     break;
                 };
-*/
+
                 // 0xde : SBC n
                 case 0xde:
                 {
@@ -1466,7 +1464,6 @@ public:
                     break;
                 };
                 // 0xfd : FD Prefix (IY instructions)
-/* @TODO
                 case 0xfd:
                 {
                     // R is incremented at the start of the second instruction cycle,
@@ -1476,21 +1473,16 @@ public:
                     r = (r & 0x80) | (((r & 0x7f) + 1) & 0x7f);
 
                     pc = (pc + 1) & 0xffff;
-                    int opcode = mem_read(pc),
-                    func = dd_instructions[opcode];
+                    int opcode = mem_read(pc);
 
-                    if (func)
+                    // Rather than copy and paste all the IX instructions into IY instructions,
+                    //  what we'll do is sneakily copy IY into IX, run the IX instruction,
+                    //  and then copy the result into IY and restore the old IX.
+                    int temp = ix;
+                    ix = iy;
+
+                    if (dd_instructions(opcode))
                     {
-                        // Rather than copy and paste all the IX instructions into IY instructions,
-                        //  what we'll do is sneakily copy IY into IX, run the IX instruction,
-                        //  and then copy the result into IY and restore the old IX.
-                        int temp = ix;
-                        ix = iy;
-                        //func = func.bind(this);
-                        func();
-                        iy = ix;
-                        ix = temp;
-
                         cycle_counter += cycle_counts_dd[opcode];
                     }
                     else
@@ -1501,12 +1493,16 @@ public:
                         //  program counter, so that this byte gets decoded
                         //  as a normal instruction.
                         pc = (pc - 1) & 0xffff;
+
                         // And we'll add in the cycle count for a NOP.
                         cycle_counter += cycle_counts[0];
                     }
+
+                    iy = ix;
+                    ix = temp;
                     break;
                 };
-*/
+
                 // 0xfe : CP n
                 case 0xfe:
                 {
@@ -2154,7 +2150,681 @@ public:
     ///////////////////////////////////////////////////////////////////////////////
 
     // Исполнение инструкции DDh
-    void dd_instructions(int opcode) {
+    int dd_instructions(int opcode) {
+
+        switch (opcode) {
+
+            // 0x09 : ADD IX, BC
+            case 0x09:
+            {
+                do_ix_add(c | (b << 8));
+                return 1;
+            };
+            // 0x19 : ADD IX, DE
+            case 0x19:
+            {
+                do_ix_add(e | (d << 8));
+                return 1;
+            };
+            // 0x21 : LD IX, nn
+            case 0x21:
+            {
+                pc = (pc + 1) & 0xffff;
+                ix = mem_read(pc);
+                pc = (pc + 1) & 0xffff;
+                ix |= (mem_read(pc) << 8);
+                return 1;
+            };
+            // 0x22 : LD (nn), IX
+            case 0x22:
+            {
+                pc = (pc + 1) & 0xffff;
+                int address = mem_read(pc);
+                pc = (pc + 1) & 0xffff;
+                address |= (mem_read(pc) << 8);
+
+                mem_write(address, ix & 0xff);
+                mem_write((address + 1) & 0xffff, (ix >> 8) & 0xff);
+                return 1;
+            };
+            // 0x23 : INC IX
+            case 0x23:
+            {
+                ix = (ix + 1) & 0xffff;
+                return 1;
+            };
+            // 0x24 : INC IXH (Undocumented)
+            case 0x24:
+            {
+                ix = (do_inc(ix >> 8) << 8) | (ix & 0xff);
+                return 1;
+            };
+            // 0x25 : DEC IXH (Undocumented)
+            case 0x25:
+            {
+                ix = (do_dec(ix >> 8) << 8) | (ix & 0xff);
+                return 1;
+            };
+            // 0x26 : LD IXH, n (Undocumented)
+            case 0x26:
+            {
+                pc = (pc + 1) & 0xffff;
+                ix = (mem_read(pc) << 8) | (ix & 0xff);
+                return 1;
+            };
+            // 0x29 : ADD IX, IX
+            case 0x29:
+            {
+                do_ix_add(ix);
+                return 1;
+            };
+            // 0x2a : LD IX, (nn)
+            case 0x2a:
+            {
+                pc = (pc + 1) & 0xffff;
+                int address = mem_read(pc);
+                pc = (pc + 1) & 0xffff;
+                address |= (mem_read(pc) << 8);
+
+                ix = mem_read(address);
+                ix |= (mem_read((address + 1) & 0xffff) << 8);
+                return 1;
+            };
+            // 0x2b : DEC IX
+            case 0x2b:
+            {
+                ix = (ix - 1) & 0xffff;
+                return 1;
+            };
+            // 0x2c : INC IXL (Undocumented)
+            case 0x2c:
+            {
+                ix = do_inc(ix & 0xff) | (ix & 0xff00);
+                return 1;
+            };
+            // 0x2d : DEC IXL (Undocumented)
+            case 0x2d:
+            {
+                ix = do_dec(ix & 0xff) | (ix & 0xff00);
+                return 1;
+            };
+            // 0x2e : LD IXL, n (Undocumented)
+            case 0x2e:
+            {
+                pc = (pc + 1) & 0xffff;
+                ix = (mem_read(pc) & 0xff) | (ix & 0xff00);
+                return 1;
+            };
+            // 0x34 : INC (IX+n)
+            case 0x34:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc)),
+                value = mem_read((offset + ix) & 0xffff);
+                mem_write((offset + ix) & 0xffff, do_inc(value));
+                return 1;
+            };
+            // 0x35 : DEC (IX+n)
+            case 0x35:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc)),
+                value = mem_read((offset + ix) & 0xffff);
+                mem_write((offset + ix) & 0xffff, do_dec(value));
+                return 1;
+            };
+            // 0x36 : LD (IX+n), n
+            case 0x36:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                pc = (pc + 1) & 0xffff;
+                mem_write((ix + offset) & 0xffff, mem_read(pc));
+                return 1;
+            };
+            // 0x39 : ADD IX, SP
+            case 0x39:
+            {
+                do_ix_add(sp);
+                return 1;
+            };
+            // 0x44 : LD B, IXH (Undocumented)
+            case 0x44:
+            {
+                b = (ix >> 8) & 0xff;
+                return 1;
+            };
+            // 0x45 : LD B, IXL (Undocumented)
+            case 0x45:
+            {
+                b = ix & 0xff;
+                return 1;
+            };
+            // 0x46 : LD B, (IX+n)
+            case 0x46:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                b = mem_read((ix + offset) & 0xffff);
+                return 1;
+            };
+            // 0x4c : LD C, IXH (Undocumented)
+            case 0x4c:
+            {
+                c = (ix >> 8) & 0xff;
+                return 1;
+            };
+            // 0x4d : LD C, IXL (Undocumented)
+            case 0x4d:
+            {
+                c = ix & 0xff;
+                return 1;
+            };
+            // 0x4e : LD C, (IX+n)
+            case 0x4e:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                c = mem_read((ix + offset) & 0xffff);
+                return 1;
+            };
+            // 0x54 : LD D, IXH (Undocumented)
+            case 0x54:
+            {
+                d = (ix >> 8) & 0xff;
+                return 1;
+            };
+            // 0x55 : LD D, IXL (Undocumented)
+            case 0x55:
+            {
+                d = ix & 0xff;
+                return 1;
+            };
+            // 0x56 : LD D, (IX+n)
+            case 0x56:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                d = mem_read((ix + offset) & 0xffff);
+                return 1;
+            };
+            // 0x5c : LD E, IXH (Undocumented)
+            case 0x5c:
+            {
+                e = (ix >> 8) & 0xff;
+                return 1;
+            };
+            // 0x5d : LD E, IXL (Undocumented)
+            case 0x5d:
+            {
+                e = ix & 0xff;
+                return 1;
+            };
+            // 0x5e : LD E, (IX+n)
+            case 0x5e:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                e = mem_read((ix + offset) & 0xffff);
+                return 1;
+            };
+            // 0x60 : LD IXH, B (Undocumented)
+            case 0x60:
+            {
+                ix = (ix & 0xff) | (b << 8);
+                return 1;
+            };
+            // 0x61 : LD IXH, C (Undocumented)
+            case 0x61:
+            {
+                ix = (ix & 0xff) | (c << 8);
+                return 1;
+            };
+            // 0x62 : LD IXH, D (Undocumented)
+            case 0x62:
+            {
+                ix = (ix & 0xff) | (d << 8);
+                return 1;
+            };
+            // 0x63 : LD IXH, E (Undocumented)
+            case 0x63:
+            {
+                ix = (ix & 0xff) | (e << 8);
+                return 1;
+            };
+            // 0x64 : LD IXH, IXH (Undocumented)
+            case 0x64:
+            {
+                // No-op.
+                return 1;
+            };
+            // 0x65 : LD IXH, IXL (Undocumented)
+            case 0x65:
+            {
+                ix = (ix & 0xff) | ((ix & 0xff) << 8);
+                return 1;
+            };
+            // 0x66 : LD H, (IX+n)
+            case 0x66:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                h = mem_read((ix + offset) & 0xffff);
+                return 1;
+            };
+            // 0x67 : LD IXH, A (Undocumented)
+            case 0x67:
+            {
+                ix = (ix & 0xff) | (a << 8);
+                return 1;
+            };
+            // 0x68 : LD IXL, B (Undocumented)
+            case 0x68:
+            {
+                ix = (ix & 0xff00) | b;
+                return 1;
+            };
+            // 0x69 : LD IXL, C (Undocumented)
+            case 0x69:
+            {
+                ix = (ix & 0xff00) | c;
+                return 1;
+            };
+            // 0x6a : LD IXL, D (Undocumented)
+            case 0x6a:
+            {
+                ix = (ix & 0xff00) | d;
+                return 1;
+            };
+            // 0x6b : LD IXL, E (Undocumented)
+            case 0x6b:
+            {
+                ix = (ix & 0xff00) | e;
+                return 1;
+            };
+            // 0x6c : LD IXL, IXH (Undocumented)
+            case 0x6c:
+            {
+                ix = (ix & 0xff00) | (ix >> 8);
+                return 1;
+            };
+            // 0x6d : LD IXL, IXL (Undocumented)
+            case 0x6d:
+            {
+                // No-op.
+                return 1;
+            };
+            // 0x6e : LD L, (IX+n)
+            case 0x6e:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                l = mem_read((ix + offset) & 0xffff);
+                return 1;
+            };
+            // 0x6f : LD IXL, A (Undocumented)
+            case 0x6f:
+            {
+                ix = (ix & 0xff00) | a;
+                return 1;
+            };
+            // 0x70 : LD (IX+n), B
+            case 0x70:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                mem_write((ix + offset) & 0xffff, b);
+                return 1;
+            };
+            // 0x71 : LD (IX+n), C
+            case 0x71:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                mem_write((ix + offset) & 0xffff, c);
+                return 1;
+            };
+            // 0x72 : LD (IX+n), D
+            case 0x72:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                mem_write((ix + offset) & 0xffff, d);
+                return 1;
+            };
+            // 0x73 : LD (IX+n), E
+            case 0x73:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                mem_write((ix + offset) & 0xffff, e);
+                return 1;
+            };
+            // 0x74 : LD (IX+n), H
+            case 0x74:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                mem_write((ix + offset) & 0xffff, h);
+                return 1;
+            };
+            // 0x75 : LD (IX+n), L
+            case 0x75:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                mem_write((ix + offset) & 0xffff, l);
+                return 1;
+            };
+            // 0x77 : LD (IX+n), A
+            case 0x77:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                mem_write((ix + offset) & 0xffff, a);
+                return 1;
+            };
+            // 0x7c : LD A, IXH (Undocumented)
+            case 0x7c:
+            {
+                a = (ix >> 8) & 0xff;
+                return 1;
+            };
+            // 0x7d : LD A, IXL (Undocumented)
+            case 0x7d:
+            {
+                a = ix & 0xff;
+                return 1;
+            };
+            // 0x7e : LD A, (IX+n)
+            case 0x7e:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                a = mem_read((ix + offset) & 0xffff);
+                return 1;
+            };
+            // 0x84 : ADD A, IXH (Undocumented)
+            case 0x84:
+            {
+                do_add((ix >> 8) & 0xff);
+                return 1;
+            };
+            // 0x85 : ADD A, IXL (Undocumented)
+            case 0x85:
+            {
+                do_add(ix & 0xff);
+                return 1;
+            };
+            // 0x86 : ADD A, (IX+n)
+            case 0x86:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                do_add(mem_read((ix + offset) & 0xffff));
+                return 1;
+            };
+            // 0x8c : ADC A, IXH (Undocumented)
+            case 0x8c:
+            {
+                do_adc((ix >> 8) & 0xff);
+                return 1;
+            };
+            // 0x8d : ADC A, IXL (Undocumented)
+            case 0x8d:
+            {
+                do_adc(ix & 0xff);
+                return 1;
+            };
+            // 0x8e : ADC A, (IX+n)
+            case 0x8e:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                do_adc(mem_read((ix + offset) & 0xffff));
+                return 1;
+            };
+            // 0x94 : SUB IXH (Undocumented)
+            case 0x94:
+            {
+                do_sub((ix >> 8) & 0xff);
+                return 1;
+            };
+            // 0x95 : SUB IXL (Undocumented)
+            case 0x95:
+            {
+                do_sub(ix & 0xff);
+                return 1;
+            };
+            // 0x96 : SUB A, (IX+n)
+            case 0x96:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                do_sub(mem_read((ix + offset) & 0xffff));
+                return 1;
+            };
+            // 0x9c : SBC IXH (Undocumented)
+            case 0x9c:
+            {
+                do_sbc((ix >> 8) & 0xff);
+                return 1;
+            };
+            // 0x9d : SBC IXL (Undocumented)
+            case 0x9d:
+            {
+                do_sbc(ix & 0xff);
+                return 1;
+            };
+            // 0x9e : SBC A, (IX+n)
+            case 0x9e:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                do_sbc(mem_read((ix + offset) & 0xffff));
+                return 1;
+            };
+            // 0xa4 : AND IXH (Undocumented)
+            case 0xa4:
+            {
+                do_and((ix >> 8) & 0xff);
+                return 1;
+            };
+            // 0xa5 : AND IXL (Undocumented)
+            case 0xa5:
+            {
+                do_and(ix & 0xff);
+                return 1;
+            };
+            // 0xa6 : AND A, (IX+n)
+            case 0xa6:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                do_and(mem_read((ix + offset) & 0xffff));
+                return 1;
+            };
+            // 0xac : XOR IXH (Undocumented)
+            case 0xac:
+            {
+                do_xor((ix >> 8) & 0xff);
+                return 1;
+            };
+            // 0xad : XOR IXL (Undocumented)
+            case 0xad:
+            {
+                do_xor(ix & 0xff);
+                return 1;
+            };
+            // 0xae : XOR A, (IX+n)
+            case 0xae:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                do_xor(mem_read((ix + offset) & 0xffff));
+                return 1;
+            };
+            // 0xb4 : OR IXH (Undocumented)
+            case 0xb4:
+            {
+                do_or((ix >> 8) & 0xff);
+                return 1;
+            };
+            // 0xb5 : OR IXL (Undocumented)
+            case 0xb5:
+            {
+                do_or(ix & 0xff);
+                return 1;
+            };
+            // 0xb6 : OR A, (IX+n)
+            case 0xb6:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                do_or(mem_read((ix + offset) & 0xffff));
+                return 1;
+            };
+            // 0xbc : CP IXH (Undocumented)
+            case 0xbc:
+            {
+                do_cp((ix >> 8) & 0xff);
+                return 1;
+            };
+            // 0xbd : CP IXL (Undocumented)
+            case 0xbd:
+            {
+                do_cp(ix & 0xff);
+                return 1;
+            };
+            // 0xbe : CP A, (IX+n)
+            case 0xbe:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+                do_cp(mem_read((ix + offset) & 0xffff));
+                return 1;
+            };
+            // 0xcb : CB Prefix (IX bit instructions)
+            case 0xcb:
+            {
+                pc = (pc + 1) & 0xffff;
+                int offset = get_signed_offset_byte(mem_read(pc));
+
+                pc = (pc + 1) & 0xffff;
+                int opcode = mem_read(pc),
+                    value = -1;
+
+                // As with the "normal" CB prefix, we implement the DDCB prefix
+                //  by decoding the opcode directly, rather than using a table.
+                if (opcode < 0x40)
+                {
+                    // Most of the opcodes in this range are not valid,
+                    //  so we map this opcode onto one of the ones that is.
+                    value = mem_read((ix + offset) & 0xffff);
+
+                    // Shift and rotate instructions.
+                    switch ((opcode & 0x38) >> 3) {
+
+                        case 0: value = do_rlc(value); break;
+                        case 1: value = do_rrc(value); break;
+                        case 2: value = do_rl (value); break;
+                        case 3: value = do_rr (value); break;
+                        case 4: value = do_sla(value); break;
+                        case 5: value = do_sra(value); break;
+                        case 6: value = do_sll(value); break;
+                        case 7: value = do_srl(value); break;
+                    }
+
+                    mem_write((ix + offset) & 0xffff, value);
+                }
+                else
+                {
+                    int bit_number = (opcode & 0x38) >> 3;
+
+                    if (opcode < 0x80)
+                    {
+                        // BIT
+                        flags.N = 0;
+                        flags.H = 1;
+                        flags.Z = !(mem_read((ix + offset) & 0xffff) & (1 << bit_number)) ? 1 : 0;
+                        flags.P = flags.Z;
+                        flags.S = ((bit_number == 7) && !flags.Z) ? 1 : 0;
+                    }
+                    else if (opcode < 0xc0)
+                    {
+                        // RES
+                        value = mem_read((ix + offset) & 0xffff) & ~(1 << bit_number) & 0xff;
+                        mem_write((ix + offset) & 0xffff, value);
+                    }
+                    else
+                    {
+                        // SET
+                        value = mem_read((ix + offset) & 0xffff) | (1 << bit_number);
+                        mem_write((ix + offset) & 0xffff, value);
+                    }
+                }
+
+                // This implements the undocumented shift, RES, and SET opcodes,
+                //  which write their result to memory and also to an 8080 register.
+                if (value != -1)
+                {
+                    if ((opcode & 0x07) == 0)
+                        b = value;
+                    else if ((opcode & 0x07) == 1)
+                        c = value;
+                    else if ((opcode & 0x07) == 2)
+                        d = value;
+                    else if ((opcode & 0x07) == 3)
+                        e = value;
+                    else if ((opcode & 0x07) == 4)
+                        h = value;
+                    else if ((opcode & 0x07) == 5)
+                        l = value;
+                    // 6 is the documented opcode, which doesn't set a register.
+                    else if ((opcode & 0x07) == 7)
+                        a = value;
+                }
+
+                cycle_counter += cycle_counts_cb[opcode] + 8;
+                return 1;
+            };
+            // 0xe1 : POP IX
+            case 0xe1:
+            {
+                ix = pop_word();
+                return 1;
+            };
+            // 0xe3 : EX (SP), IX
+            case 0xe3:
+            {
+                int temp = ix;
+                ix = mem_read(sp);
+                ix |= mem_read((sp + 1) & 0xffff) << 8;
+                mem_write(sp, temp & 0xff);
+                mem_write((sp + 1) & 0xffff, (temp >> 8) & 0xff);
+                return 1;
+            };
+            // 0xe5 : PUSH IX
+            case 0xe5:
+            {
+                push_word(ix);
+                return 1;
+            };
+            // 0xe9 : JP (IX)
+            case 0xe9:
+            {
+                pc = (ix - 1) & 0xffff;
+                return 1;
+            };
+            // 0xf9 : LD SP, IX
+            case 0xf9:
+            {
+                sp = ix;
+                return 1;
+            };
+        }
+
+        return 0;
     }
 
     // -----------------------------------------------------------------
