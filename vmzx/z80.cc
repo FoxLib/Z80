@@ -1,3 +1,30 @@
+
+///////////////////////////////////////////////////////////////////////////////
+/// @file z80.cc
+///
+/// @brief Emulator for the Zilog Z80 microprocessor
+///
+/// @author Molly Howell
+/// @editor Valery Foxtail
+///
+/// @remarks
+///  This module is a simple, straightforward instruction interpreter.
+///   There is no fancy dynamic recompilation or cycle-accurate emulation.
+///   The author believes that this should be sufficient for any emulator that
+///   would be feasible to write in JavaScript anyway.
+///  The code and the comments in this file assume that the reader is familiar
+///   with the Z80 architecture. If you're not, here are some references I use:
+///  http://clrhome.org/table/ - Z80 instruction set tables
+///  http://www.zilog.com/docs/z80/um0080.pdf - The official manual
+///  http://www.myquest.nl/z80undocumented/z80-documented-v0.91.pdf
+///   - The Undocumented Z80, Documented
+///
+/// @copyright (c) Molly Howell
+///  This code is released under the MIT license,
+///  a copy of which is available in the associated README.md file,
+///  or at http://opensource.org/licenses/MIT
+///////////////////////////////////////////////////////////////////////////////
+
 struct Tflags {
     char S, Z, Y, H, X, P, N, C;
 };
