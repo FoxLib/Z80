@@ -28,11 +28,15 @@ protected:
     // Обработка одного кадрового фрейма
     void frame() {
 
-        int   fine_x = 0;
-        int   border_x = 0, border_y = 0;
+        int fine_x = 0;
+        int border_x = 0, border_y = 0;
+        int first_int = 1;
 
         // Выполнить необходимое количество циклов
         while (t_states_cycle < max_cycles_per_frame) {
+
+            // Вызов прерывания на определенной строке
+            if (first_int && border_y == 198) { interrupt(0, 0xff); first_int = 0; }
 
             int t_states = run_instruction();
             t_states_cycle += t_states;
@@ -59,9 +63,6 @@ protected:
                 while (fine_x > max_cycles_per_frame);
             }
         }
-
-        // Вызов прерывания
-        interrupt(0, 0xff);
 
         t_states_cycle %= max_cycles_per_frame;
     }

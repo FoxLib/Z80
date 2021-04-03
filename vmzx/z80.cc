@@ -258,7 +258,7 @@ public:
     /// @param data - the value to be placed on the data bus, if needed
     ///////////////////////////////////////////////////////////////////////////////
 
-    void interrupt(int non_maskable, int data)
+    int interrupt(int non_maskable, int data)
     {
         if (non_maskable)
         {
@@ -320,6 +320,8 @@ public:
                 cycle_counter += 19;
             }
         }
+
+        return cycle_counter;
     }
 
     int get_operand(int opcode)
