@@ -117,30 +117,39 @@ protected:
             case SDLK_j: key_press(6, 0x08, press); break;
             case SDLK_k: key_press(6, 0x04, press); break;
             case SDLK_l: key_press(6, 0x02, press); break;
-            case SDLK_RETURN: key_press(6, 0x01, press); break;
+            case SDLK_RETURN:    key_press(6, 0x01, press); break;
+            case SDLK_KP_ENTER:  key_press(6, 0x01, press); break;
 
             // Четвертый ряд
-            case SDLK_LSHIFT: key_press(0, 0x01, press); break;
-            case SDLK_z: key_press(0, 0x02, press); break;
-            case SDLK_x: key_press(0, 0x04, press); break;
-            case SDLK_c: key_press(0, 0x08, press); break;
-            case SDLK_v: key_press(0, 0x10, press); break;
-            case SDLK_b: key_press(7, 0x10, press); break;
-            case SDLK_n: key_press(7, 0x08, press); break;
-            case SDLK_m: key_press(7, 0x04, press); break;
-            case SDLK_RSHIFT: key_press(7, 0x02, press); break;
-            case SDLK_SPACE:  key_press(7, 0x01, press); break;
+            case SDLK_LSHIFT:   key_press(0, 0x01, press); break;
+            case SDLK_z:        key_press(0, 0x02, press); break;
+            case SDLK_x:        key_press(0, 0x04, press); break;
+            case SDLK_c:        key_press(0, 0x08, press); break;
+            case SDLK_v:        key_press(0, 0x10, press); break;
+            case SDLK_b:        key_press(7, 0x10, press); break;
+            case SDLK_n:        key_press(7, 0x08, press); break;
+            case SDLK_m:        key_press(7, 0x04, press); break;
+            case SDLK_RSHIFT:   key_press(7, 0x02, press); break;
+            case SDLK_SPACE:    key_press(7, 0x01, press); break;
 
             // Специальные
-            case SDLK_LEFT:  key_press(0, 0x01, press); key_press(3, 0x10, press); break; // SS+5
-            case SDLK_RIGHT: key_press(0, 0x01, press); key_press(4, 0x04, press); break; // SS+8
-            case SDLK_UP:    key_press(0, 0x01, press); key_press(4, 0x08, press); break; // SS+7
-            case SDLK_DOWN:  key_press(0, 0x01, press); key_press(4, 0x10, press); break; // SS+6
-            case SDLK_TAB:   key_press(0, 0x01, press); key_press(7, 0x02, press); break; //  SS+CS
-            case SDLK_BACKQUOTE: key_press(0, 0x01, press); key_press(3, 0x01, press); break; // SS+1 EDIT
-            case SDLK_CAPSLOCK:  key_press(0, 0x01, press); key_press(3, 0x02, press); break; // SS+2 CAP (DANGER)
-            case SDLK_BACKSPACE: key_press(0, 0x01, press); key_press(4, 0x01, press); break; // SS+0 BS
-            case SDLK_ESCAPE:    key_press(0, 0x01, press); key_press(7, 0x01, press); break; // SS+SPC
+            case SDLK_LEFT:         key_press(0, 0x01, press); key_press(3, 0x10, press); break; // SS+5
+            case SDLK_RIGHT:        key_press(0, 0x01, press); key_press(4, 0x04, press); break; // SS+8
+            case SDLK_UP:           key_press(0, 0x01, press); key_press(4, 0x08, press); break; // SS+7
+            case SDLK_DOWN:         key_press(0, 0x01, press); key_press(4, 0x10, press); break; // SS+6
+            case SDLK_TAB:          key_press(0, 0x01, press); key_press(7, 0x02, press); break; //  SS+CS
+            case SDLK_BACKQUOTE:    key_press(0, 0x01, press); key_press(3, 0x01, press); break; // SS+1 EDIT
+            case SDLK_CAPSLOCK:     key_press(0, 0x01, press); key_press(3, 0x02, press); break; // SS+2 CAP (DANGER)
+            case SDLK_BACKSPACE:    key_press(0, 0x01, press); key_press(4, 0x01, press); break; // SS+0 BS
+            case SDLK_ESCAPE:       key_press(0, 0x01, press); key_press(7, 0x01, press); break; // SS+SPC
+            case SDLK_COMMA:        key_press(7, 0x02, press); key_press(7, 0x08, press); break; // ,
+            case SDLK_PERIOD:       key_press(7, 0x02, press); key_press(7, 0x04, press); break; // .
+            case SDLK_MINUS:        key_press(7, 0x02, press); key_press(6, 0x08, press); break; // -
+            case SDLK_EQUALS:       key_press(7, 0x02, press); key_press(6, 0x02, press); break; // =
+            case SDLK_KP_PLUS:      key_press(7, 0x02, press); key_press(6, 0x04, press); break; // +
+            case SDLK_KP_MINUS:     key_press(7, 0x02, press); key_press(6, 0x08, press); break; // -
+            case SDLK_KP_MULTIPLY:  key_press(7, 0x02, press); key_press(7, 0x10, press); break; // *
+            case SDLK_KP_DIVIDE:    key_press(7, 0x02, press); key_press(0, 0x10, press); break; // /
 
             // Отладка
             case SDLK_F1: if (press) { loadbin("zexall", 0x8000); printf("ZXALL LOADED\n"); } break;
