@@ -1,4 +1,4 @@
-NAME=02_snake
+NAME=01_hello
 all:
 	./../bas2tap/bas2tap -q $(NAME).bas ../program.tap
-	cd .. && ./vmzx basic.z80 program.tap
+	cd .. && ./vmzx -a basic.z80 program.tap

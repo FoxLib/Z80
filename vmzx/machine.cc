@@ -34,13 +34,18 @@ protected:
     int   con_pngout;
     char* filename_pngout;
     FILE* png_file;
-    int   first_sta;
+    int   first_sta;            // Досрочно обновить экран
+    int   autostart;            // Автостарт при запуске
+    int   frame_counter;        // Количество кадров от начала
 
     // Обработка одного кадра
     void frame() {
 
         int fine_x    = 0;
         int border_x  = 0, border_y = 0;
+
+        // Автоматическое нажимание на клавиши
+        autostart_macro();
 
         // Выполнить необходимое количество циклов
         while (t_states_cycle < max_cycles_per_frame) {
@@ -87,6 +92,26 @@ protected:
 
         // Включить вывод в PNG
         encodepng();
+        frame_counter++;
+    }
+
+    /*
+     * Симулятор нажатия на клавиши
+     **/
+
+    void autostart_macro() {
+
+        autostart++;
+        switch (autostart) {
+
+            case 1: autostart = 0; break;
+            case 2: key_press(2, 0x08, 1); break; // R
+            case 3: key_press(2, 0x08, 0); break;
+            case 4: key_press(6, 0x01, 1); break; // ENT
+            case 5: key_press(6, 0x01, 0); break;
+            case 6: autostart = 0; break;
+
+        }
     }
 
     // Занесение нажатия в регистры
@@ -333,10 +358,12 @@ public:
         sdl_enable = 1;
         first_sta  = 1;
 
-        t_states_cycle = 0;
-        flash_state    = 0;
-        flash_counter  = 0;
-        ms_clock_old   = 0;
+        t_states_cycle  = 0;
+        flash_state     = 0;
+        flash_counter   = 0;
+        ms_clock_old    = 0;
+        autostart       = 0;
+        frame_counter   = 0;
 
         millis_per_frame     = 20;
         max_cycles_per_frame = millis_per_frame*3500;
@@ -373,6 +400,9 @@ public:
 
                     // Отключение SDL
                     case 'c': sdl_enable = 0; break;
+
+                    // Включение последовательности автостарта (RUN ENT)
+                    case 'a': autostart = 1; break;
 
                     // Файл для записи видео
                     case 'o':

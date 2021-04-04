@@ -1,1 +1,6 @@
 10 CLS
+20 DATA 1,2,3,4,5
+25 FOR i=1 TO 5
+30 READ a
+40 PRINT a;" ";
+50 NEXT i

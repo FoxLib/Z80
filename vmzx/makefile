@@ -1,7 +1,6 @@
 all:
 	g++ `sdl-config --cflags --libs` main.cc -lSDL -o vmzx
 	./vmzx
-
 dizzy3:
 	./vmzx dizzy3.z80
 tap:

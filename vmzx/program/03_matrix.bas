@@ -7,4 +7,3 @@
 46 FOR n=7 TO 0 STEP -1
 50 POKE 23607,191: POKE 23606,n: POKE 23681,88: LPRINT b$: POKE 23681,89: LPRINT c$: POKE 23681,90: LPRINT d$: NEXT n: LET e$=d$: LET d$=c$: LET c$=b$: LET b$=a$: LET a$=e$: GO TO 46
 
-https://worldofspectrum.org/files/download/dbdb35d34a82a78
