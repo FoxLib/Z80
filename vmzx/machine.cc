@@ -375,8 +375,13 @@ public:
 
                         filename_pngout = argv[u+1];
                         con_pngout = 1; u++;
-                        FILE* fp = fopen(filename_pngout, "w+");
-                        fclose(fp);
+                        if (strcmp(filename_pngout,"-") == 0) {
+                            filename_pngout = NULL;
+                        }
+                        else {
+                            FILE* fp = fopen(filename_pngout, "w+");
+                            fclose(fp);
+                        }
                         break;
                 }
 
@@ -619,7 +624,7 @@ public:
 
             // Пока что так сохраняется (!)
             if (!error) {
-                FILE* fp = fopen(filename_pngout, "ab+");
+                FILE* fp = filename_pngout ? fopen(filename_pngout, "ab+") : stdout;
                 fwrite(png, 1, pngsize, fp);
                 fclose(fp);
             }
