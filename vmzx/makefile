@@ -4,3 +4,5 @@ all:
 png:
 	./main dizzy3.z80 -o record.png
 	ffmpeg -framerate 50 -r 50 -i record.png -f mp4 -q:v 0 -vcodec mpeg4 -y record.mp4
+mp4:
+	./main dizzy3.z80 -o - | ffmpeg -framerate 50 -r 50 -i - -f mp4 -q:v 0 -vcodec mpeg4 -y record.mp4

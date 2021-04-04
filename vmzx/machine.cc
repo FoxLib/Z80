@@ -33,6 +33,7 @@ protected:
     int   con_frame_start, con_frame_end, con_frame_fps;
     int   con_pngout;
     char* filename_pngout;
+    FILE* png_file;
 
     // Обработка одного кадра
     void frame() {
@@ -346,6 +347,7 @@ public:
         con_frame_fps   = 30;
         con_pngout      = 0;
         filename_pngout = NULL;
+        png_file        = NULL;
 
         loadbin("zx48.bin", 0);
 
@@ -354,7 +356,9 @@ public:
     }
 
     ~Z80Spectrum() {
+		
         if (sdl_enable) SDL_Quit();
+        if (png_file) fclose(png_file);
     }
 
     // Разбор аргументов
@@ -376,11 +380,9 @@ public:
                         filename_pngout = argv[u+1];
                         con_pngout = 1; u++;
                         if (strcmp(filename_pngout,"-") == 0) {
-                            filename_pngout = NULL;
-                        }
-                        else {
-                            FILE* fp = fopen(filename_pngout, "w+");
-                            fclose(fp);
+                            png_file = stdout;
+                        } else {
+                            png_file = fopen(filename_pngout, "w+");
                         }
                         break;
                 }
@@ -623,11 +625,7 @@ public:
             error = lodepng_encode(&png, &pngsize, (const unsigned char*)fb, 320, 240, &state);
 
             // Пока что так сохраняется (!)
-            if (!error) {
-                FILE* fp = filename_pngout ? fopen(filename_pngout, "ab+") : stdout;
-                fwrite(png, 1, pngsize, fp);
-                fclose(fp);
-            }
+            if (!error) { fwrite(png, 1, pngsize, png_file); }
 
             /*if there's an error, display it*/
             if (error) printf("error %u: %s\n", error, lodepng_error_text(error));
