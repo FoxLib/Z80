@@ -34,19 +34,16 @@ protected:
     int   con_pngout;
     char* filename_pngout;
     FILE* png_file;
+    int   first_sta;
 
     // Обработка одного кадра
     void frame() {
 
         int fine_x    = 0;
         int border_x  = 0, border_y = 0;
-        int first_int = 1;
 
         // Выполнить необходимое количество циклов
         while (t_states_cycle < max_cycles_per_frame) {
-
-            // Вызов прерывания на определенной строке
-            // if (first_int && border_y == 198) { interrupt(0, 0xff); first_int = 0; }
 
             int t_states = run_instruction();
             t_states_cycle += t_states;
@@ -79,8 +76,10 @@ protected:
 
         // Мерцающие элементы
         flash_counter++;
-        if (flash_counter >= 25) {
+        if (flash_counter >= 25 || first_sta) {
+
             flash_counter = 0;
+            first_sta     = 0;
             flash_state   = !flash_state;
 
             for (int _i = 0x5800; _i < 0x5b00; _i++) update_attrbox(_i);
@@ -332,6 +331,7 @@ public:
         width      = 320*3;
         height     = 240*3;
         sdl_enable = 1;
+        first_sta  = 1;
 
         t_states_cycle = 0;
         flash_state    = 0;
@@ -356,7 +356,7 @@ public:
     }
 
     ~Z80Spectrum() {
-		
+
         if (sdl_enable) SDL_Quit();
         if (png_file) fclose(png_file);
     }
@@ -391,6 +391,10 @@ public:
             // Загрузка файла
             else if (strstr(argv[u], ".z80") != NULL) {
                 loadz80(argv[u]);
+            }
+            // Загрузка файла BAS с ленты
+            else if (strstr(argv[u], ".tap") != NULL) {
+                loadtap(argv[u]);
             }
         }
     }
@@ -531,7 +535,7 @@ public:
                     for (int t_ = 0; t_ < data[cursor+2]; t_++) {
 
                         if (addr >= 0x4000 && addr <= 0xFFFF) {
-                            mem_write(addr, data[cursor+3]);
+                            memory[addr] = data[cursor+3];
                         }
 
                         addr++;
@@ -542,7 +546,7 @@ public:
                 } else {
 
                     if (addr >= 0x4000 && addr <= 0xFFFF)
-                        mem_write(addr, data[cursor]);
+                        memory[addr] = data[cursor];
 
                     addr++;
                     cursor++;
@@ -560,8 +564,108 @@ public:
                 cursor++;
             }
         }
+    }
 
+    // https://sinclair.wiki.zxnet.co.uk/wiki/TAP_format
+    void loadtap(const char* filename) {
 
+        unsigned char tapfile[64*1024];
+
+        FILE* fp = fopen(filename, "rb");
+        if (fp == NULL) { printf("No file %s\n", filename); exit(1); }
+        fseek(fp, 0, SEEK_END);
+        int fsize = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        fread(tapfile, 1, fsize, fp);
+        fclose(fp);
+
+        if (tapfile[0x17] != 0xff) {
+            printf("No BASIC program\n"); exit(1);
+        }
+
+        // Размер бейсик-программы
+        int bsize = tapfile[0x15] + tapfile[0x16]*256 - 2;
+
+        // Запись в программную область
+        for (int q = 0; q < bsize; q++) memory[0x5ccb + q] = tapfile[0x18 + q];
+
+        int endp = 0x5ccb + bsize;
+        int next = endp;
+
+        // END OF PROGRAM
+        memory[endp ]  = 0x80;
+        memory[endp+1] = 0x0D; // Линия 1 (next+0)
+        memory[endp+2] = 0x80; //         (next+1)
+        memory[endp+3] = 0x22; //         (next+2)
+        memory[endp+4] = 0x0D; // Линия 2 (next+3)
+        memory[endp+5] = 0x80; //         (next+4)
+
+        // VARS
+        memory[0x5C4B] =  next & 255;
+        memory[0x5C4C] = (next>>8) & 255;
+
+        next++;
+
+        // E-LINE :: https://skoolkid.github.io/rom/asm/5C59.html
+        memory[0x5C59] =  next & 255;
+        memory[0x5C5A] = (next>>8) & 255;
+
+        // K-CUR - Address of cursor :: https://skoolkid.github.io/rom/asm/5C5B.html
+        memory[0x5C5B] =  next & 255;
+        memory[0x5C5C] = (next>>8) & 255;
+
+        next += 2;
+
+        // https://skoolkid.github.io/rom/asm/5C61.html
+        memory[0x5C61] =  next & 255;
+        memory[0x5C62] = (next>>8) & 255;
+
+        // https://skoolkid.github.io/rom/asm/5C63.html
+        memory[0x5C63] =  next & 255;
+        memory[0x5C64] = (next>>8) & 255;
+
+        // https://skoolkid.github.io/rom/asm/5C65.html
+        memory[0x5C65] =  next & 255;
+        memory[0x5C66] = (next>>8) & 255;
+
+        next++;
+
+        // https://skoolkid.github.io/rom/asm/5C5D.html
+        memory[0x5C5D] =  next & 255;
+        memory[0x5C5E] = (next>>8) & 255;
+
+        next++;
+
+        // NXTLIN :: https://skoolkid.github.io/rom/asm/5C55.html
+        memory[0x5C55] =  next & 255;
+        memory[0x5C56] = (next>>8) & 255;
+
+/*
+        // Всякие непонятные параметры. Оставлю на всякий случай
+        memory[0x5C3B] = 0x84;
+
+        memory[0x5C44] = 0xFF;
+        memory[0x5C45] = 0xFE;
+
+        memory[0x5C46] = 0xFF;
+        memory[0x5C47] = 0x01;
+
+        memory[0x5C5F] = 0xF8;
+        memory[0x5C67] = 0x1B; // CALC B reg
+
+        memory[0x5C74] = 0x01;
+        memory[0x5C75] = 0x1A;
+*/
+        /*
+        for (int _a = 0; _a < 21; _a++) {
+
+            printf("%04X: ", 0x5c00 + _a*8);
+            for (int _b = 0; _b < 8; _b++) {
+                printf("%02X ", memory[0x5c00 + _a*8 + _b]);
+            }
+            printf("\n");
+        }
+        */
     }
 
     // Сохранение снапшота в файл (не RLE)
