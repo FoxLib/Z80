@@ -11,6 +11,7 @@ protected:
 
     SDL_Event       event;
     SDL_Surface*    sdl_screen;
+    int             sdl_enable;
     int             width, height;
     unsigned char   memory[65536];
 
@@ -22,10 +23,9 @@ protected:
     int   flash_state, flash_counter;
     uint  border_color, border_id;
     int   key_states[8];
-
     int   t_states_cycle, millis_per_frame, max_cycles_per_frame;
 
-    // Обработка одного кадрового фрейма
+    // Обработка одного кадра
     void frame() {
 
         int fine_x    = 0;
@@ -66,8 +66,18 @@ protected:
 
         interrupt(0, 0xff);
         t_states_cycle %= max_cycles_per_frame;
+
+        // Мерцающие элементы
+        flash_counter++;
+        if (flash_counter >= 25) {
+            flash_counter = 0;
+            flash_state   = !flash_state;
+
+            for (int _i = 0x5800; _i < 0x5b00; _i++) update_attrbox(_i);
+        }
     }
 
+    // Занесение нажатия в регистры
     void key_press(int row, int mask, int press) {
 
         if (press) {
@@ -289,7 +299,7 @@ protected:
 
         if (x >= 0 && y >= 0 && x < 320 && y < 240) {
 
-            if (sdl_screen) {
+            if (sdl_enable) {
 
                 for (int k = 0; k < 9; k++)
                     ( (Uint32*)sdl_screen->pixels )[ 3*(x + width*y) + (k%3) + width*(k/3) ] = color;
@@ -309,6 +319,7 @@ public:
         sdl_screen = NULL;
         width      = 320*3;
         height     = 240*3;
+        sdl_enable = 1;
 
         t_states_cycle = 0;
         flash_state    = 0;
@@ -322,22 +333,10 @@ public:
 
         // Все кнопки вначале отпущены
         for (int _i = 0; _i < 8; _i++) key_states[_i] = 0xff;
-
-        // Инициализация SDL
-        if (sdl) {
-
-            SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-            SDL_EnableUNICODE(1);
-
-            sdl_screen = SDL_SetVideoMode(width, height, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
-            SDL_WM_SetCaption("ZX Spectrum Virtual Machine", 0);
-            SDL_EnableKeyRepeat(500, 30);
-        }
     }
 
     ~Z80Spectrum() {
-
-        if (sdl_screen) SDL_Quit();
+        if (sdl_enable) SDL_Quit();
     }
 
     /**
@@ -345,44 +344,45 @@ public:
      */
     void main() {
 
-        while (1) {
+        // Инициализация SDL
+        if (sdl_enable) {
 
-            // Регистрация событий
-            while (SDL_PollEvent(& event)) {
-                switch (event.type) {
+            SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+            SDL_EnableUNICODE(1);
 
-                    case SDL_QUIT: return;
-                    case SDL_KEYDOWN: keyb(1, & event.key); break;
-                    case SDL_KEYUP:   keyb(0, & event.key); break;
-                }
-            }
+            sdl_screen = SDL_SetVideoMode(width, height, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
+            SDL_WM_SetCaption("ZX Spectrum Virtual Machine", 0);
+            SDL_EnableKeyRepeat(500, 30);
 
-            // Вычисление разности времени
-            ftime(&ms_clock);
-            int time_curr = ms_clock.millitm;
-            int time_diff = time_curr - ms_clock_old;
-            if (time_diff < 0) time_diff += 1000;
+            while (1) {
 
-            // Если прошло 20 мс
-            if (time_diff >= 20) {
+                // Регистрация событий
+                while (SDL_PollEvent(& event)) {
+                    switch (event.type) {
 
-                ms_clock_old = time_curr;
-
-                frame();
-
-                // Мерцающие элементы
-                flash_counter++;
-                if (flash_counter >= 25) {
-                    flash_counter = 0;
-                    flash_state   = !flash_state;
-
-                    for (int _i = 0x5800; _i < 0x5b00; _i++) update_attrbox(_i);
+                        case SDL_QUIT: return;
+                        case SDL_KEYDOWN: keyb(1, & event.key); break;
+                        case SDL_KEYUP:   keyb(0, & event.key); break;
+                    }
                 }
 
-                SDL_Flip(sdl_screen);
-            }
+                // Вычисление разности времени
+                ftime(&ms_clock);
+                int time_curr = ms_clock.millitm;
+                int time_diff = time_curr - ms_clock_old;
+                if (time_diff < 0) time_diff += 1000;
 
-            SDL_Delay(1);
+                // Если прошло 20 мс
+                if (time_diff >= 20) {
+
+                    frame();
+
+                    ms_clock_old = time_curr;
+                    SDL_Flip(sdl_screen);
+                }
+
+                SDL_Delay(1);
+            }
         }
     }
 
@@ -392,7 +392,6 @@ public:
         if (argc > 1) {
             loadz80(argv[1]); // Ожидается .z80 снапшот
         }
-
     }
 
     // Загрузка бинарника
