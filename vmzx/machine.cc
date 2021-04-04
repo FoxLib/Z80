@@ -349,7 +349,7 @@ public:
         filename_pngout = NULL;
         png_file        = NULL;
 
-        loadbin("zx48.bin", 0);
+        loadbin("basic48.rom", 0);
 
         // Все кнопки вначале отпущены
         for (int _i = 0; _i < 8; _i++) key_states[_i] = 0xff;

@@ -1,6 +1,10 @@
 all:
 	g++ `sdl-config --cflags --libs` main.cc -lSDL -o main
-	#./main dizzy3.z80
+	./main
+
+dizzy3:
+	./main dizzy3.z80
+tap:
 	./main basic.z80 test.tap
 png:
 	./main dizzy3.z80 -o record.png
