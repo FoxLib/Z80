@@ -5,6 +5,9 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+
+#include "lodepng.cc"
 
 class Z80Spectrum : public Z80 {
 protected:
@@ -13,6 +16,7 @@ protected:
     SDL_Surface*    sdl_screen;
     int             sdl_enable;
     int             width, height;
+    Uint32          fb[320*240];
     unsigned char   memory[65536];
 
     // Таймер обновления экрана
@@ -24,6 +28,11 @@ protected:
     uint  border_color, border_id;
     int   key_states[8];
     int   t_states_cycle, millis_per_frame, max_cycles_per_frame;
+
+    // Консольная запись
+    int   con_frame_start, con_frame_end, con_frame_fps;
+    int   con_pngout;
+    char* filename_pngout;
 
     // Обработка одного кадра
     void frame() {
@@ -75,6 +84,9 @@ protected:
 
             for (int _i = 0x5800; _i < 0x5b00; _i++) update_attrbox(_i);
         }
+
+        // Включить вывод в PNG
+        encodepng();
     }
 
     // Занесение нажатия в регистры
@@ -299,15 +311,14 @@ protected:
 
         if (x >= 0 && y >= 0 && x < 320 && y < 240) {
 
-            if (sdl_enable) {
+            if (sdl_enable && sdl_screen) {
 
                 for (int k = 0; k < 9; k++)
                     ( (Uint32*)sdl_screen->pixels )[ 3*(x + width*y) + (k%3) + width*(k/3) ] = color;
-
-            } else {
-
-                // stub
             }
+
+            // Поменять цвета местами для PNG
+            fb[y*320+x] = (color>>16)&255 | color & 0xff00 | ((color&255)<<16) | 0xff000000;
         }
     }
 
@@ -329,6 +340,13 @@ public:
         millis_per_frame     = 20;
         max_cycles_per_frame = millis_per_frame*3500;
 
+        // Настройки записи фреймов
+        con_frame_start = 0;
+        con_frame_end   = 1000;
+        con_frame_fps   = 30;
+        con_pngout      = 0;
+        filename_pngout = NULL;
+
         loadbin("zx48.bin", 0);
 
         // Все кнопки вначале отпущены
@@ -337,6 +355,37 @@ public:
 
     ~Z80Spectrum() {
         if (sdl_enable) SDL_Quit();
+    }
+
+    // Разбор аргументов
+    void args(int argc, char** argv) {
+
+        for (int u = 1; u < argc; u++) {
+
+            // Параметр
+            if (argv[u][0] == '-') {
+
+                switch (argv[u][1]) {
+
+                    // Отключение SDL
+                    case 'c': sdl_enable = 0; break;
+
+                    // Файл для записи видео
+                    case 'o':
+
+                        filename_pngout = argv[u+1];
+                        con_pngout = 1; u++;
+                        FILE* fp = fopen(filename_pngout, "w+");
+                        fclose(fp);
+                        break;
+                }
+
+            }
+            // Загрузка файла
+            else if (strstr(argv[u], ".z80") != NULL) {
+                loadz80(argv[u]);
+            }
+        }
     }
 
     /**
@@ -384,13 +433,8 @@ public:
                 SDL_Delay(1);
             }
         }
-    }
-
-    // Разбор аргументов
-    void args(int argc, char** argv) {
-
-        if (argc > 1) {
-            loadz80(argv[1]); // Ожидается .z80 снапшот
+        // Выполнение спектрума из консоли
+        else {
         }
     }
 
@@ -479,8 +523,9 @@ public:
 
                     for (int t_ = 0; t_ < data[cursor+2]; t_++) {
 
-                        if (addr >= 0x4000 && addr <= 0xFFFF)
+                        if (addr >= 0x4000 && addr <= 0xFFFF) {
                             mem_write(addr, data[cursor+3]);
+                        }
 
                         addr++;
                     }
@@ -508,8 +553,11 @@ public:
                 cursor++;
             }
         }
+
+
     }
 
+    // Сохранение снапшота в файл (не RLE)
     void savez80(const char* filename) {
 
         unsigned char data[64];
@@ -554,5 +602,33 @@ public:
         fwrite(data, 1, 30, fp);
         fwrite(memory + 0x4000, 1, 0xc000, fp);
         fclose(fp);
+    }
+
+    // Кодировать в PNG-файл
+    void encodepng() {
+
+        unsigned       error;
+        unsigned char* png;
+        size_t         pngsize;
+        LodePNGState   state;
+
+        if (con_pngout) {
+
+            lodepng_state_init(&state);
+            error = lodepng_encode(&png, &pngsize, (const unsigned char*)fb, 320, 240, &state);
+
+            // Пока что так сохраняется (!)
+            if (!error) {
+                FILE* fp = fopen(filename_pngout, "ab+");
+                fwrite(png, 1, pngsize, fp);
+                fclose(fp);
+            }
+
+            /*if there's an error, display it*/
+            if (error) printf("error %u: %s\n", error, lodepng_error_text(error));
+
+            lodepng_state_cleanup(&state);
+            free(png);
+        }
     }
 };
