@@ -4,6 +4,8 @@ FF2=-f mp4 -q:v 0 -vcodec mpeg4 -y
 all:
 	g++ `sdl-config --cflags --libs` main.cc -lSDL -o vmzx
 	./vmzx
+nosdl:
+	g++ -DNO_SDL main.cc -lSDL -o vmzx
 tap:
 	./vmzx basic.z80 program.tap
 dizzy3:

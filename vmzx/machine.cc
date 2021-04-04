@@ -1,4 +1,6 @@
+#ifndef NO_SDL
 #include "SDL.h"
+#endif
 
 #include <sys/timeb.h>
 #include <unistd.h>
@@ -12,11 +14,13 @@
 class Z80Spectrum : public Z80 {
 protected:
 
+#ifndef NO_SDL
     SDL_Event       event;
     SDL_Surface*    sdl_screen;
+#endif
     int             sdl_enable;
     int             width, height;
-    Uint32          fb[320*240];
+    unsigned int    fb[320*240];
     unsigned char   memory[65536];
 
     // Таймер обновления экрана
@@ -125,6 +129,7 @@ protected:
         }
     }
 
+#ifndef NO_SDL
     // Нажатие клавиши
     // https://www.libsdl.org/release/SDL-1.2.15/docs/html/sdlkey.html
     void keyb(int press, SDL_KeyboardEvent* eventkey) {
@@ -207,6 +212,7 @@ protected:
             case SDLK_F3: loadz80("autosave.z80"); break;
         }
     }
+#endif
 
     /*
      * Интерфейс
@@ -337,12 +343,13 @@ protected:
 
         if (x >= 0 && y >= 0 && x < 320 && y < 240) {
 
+#ifndef NO_SDL
             if (sdl_enable && sdl_screen) {
 
                 for (int k = 0; k < 9; k++)
                     ( (Uint32*)sdl_screen->pixels )[ 3*(x + width*y) + (k%3) + width*(k/3) ] = color;
             }
-
+#endif
             // Поменять цвета местами для PNG
             fb[y*320+x] = (color>>16)&255 | color & 0xff00 | ((color&255)<<16) | 0xff000000;
         }
@@ -353,7 +360,9 @@ public:
     // Если sdl=0 то запуск без использования SDL
     Z80Spectrum(int sdl) {
 
+#ifndef NO_SDL
         sdl_screen = NULL;
+#endif
         width      = 320*3;
         height     = 240*3;
         sdl_enable = 1;
@@ -385,7 +394,9 @@ public:
 
     ~Z80Spectrum() {
 
+#ifndef NO_SDL
         if (sdl_enable) SDL_Quit();
+#endif
         if (png_file) fclose(png_file);
     }
 
@@ -435,6 +446,7 @@ public:
      */
     void main() {
 
+#ifndef NO_SDL
         // Инициализация SDL
         if (sdl_enable) {
 
@@ -476,7 +488,9 @@ public:
             }
         }
         // Выполнение спектрума из консоли
-        else {
+        else
+#endif
+        {
 
             if (con_frame_end == 0) con_frame_end = 150; // 3 sec
             while (frame_counter < con_frame_end) frame();
