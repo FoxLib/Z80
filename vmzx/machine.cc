@@ -92,6 +92,7 @@ protected:
 
         // Включить вывод в PNG
         encodepng();
+
         frame_counter++;
     }
 
@@ -105,12 +106,12 @@ protected:
         switch (autostart) {
 
             case 1: autostart = 0; break;
+            // Выполнение макроса RUN
             case 2: key_press(2, 0x08, 1); break; // R
             case 3: key_press(2, 0x08, 0); break;
             case 4: key_press(6, 0x01, 1); break; // ENT
             case 5: key_press(6, 0x01, 0); break;
             case 6: autostart = 0; break;
-
         }
     }
 
@@ -370,7 +371,7 @@ public:
 
         // Настройки записи фреймов
         con_frame_start = 0;
-        con_frame_end   = 1000;
+        con_frame_end   = 150;
         con_frame_fps   = 30;
         con_pngout      = 0;
         filename_pngout = NULL;
@@ -476,6 +477,9 @@ public:
         }
         // Выполнение спектрума из консоли
         else {
+
+            if (con_frame_end == 0) con_frame_end = 150; // 3 sec
+            while (frame_counter < con_frame_end) frame();
         }
     }
 
@@ -752,6 +756,10 @@ public:
         unsigned char* png;
         size_t         pngsize;
         LodePNGState   state;
+
+        // При наличии опции автостарта не кодировать PNG
+        if (autostart > 1)
+            return;
 
         if (con_pngout) {
 
