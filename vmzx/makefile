@@ -5,7 +5,7 @@ all:
 	g++ `sdl-config --cflags --libs` main.cc -lSDL -o vmzx
 	./vmzx
 nosdl:
-	g++ -DNO_SDL main.cc -lSDL -o vmzx
+	g++ -DNO_SDL main.cc -o vmzx
 tap:
 	./vmzx basic.z80 program.tap
 dizzy3:
