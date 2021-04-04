@@ -1795,7 +1795,7 @@ bool HandleClass05 (int BasicLineNo, int StatementNo, int Keyword, byte **Index)
   bool Type;
   bool More = TRUE;
   int  VarNameLen;
-  
+
 #ifdef __DEBUG__
   printf ("DEBUG - %sLine %d, statement %d, Enter Class 5, keyword \"%s\", next is \"%s\"\n",
           ListSpaces, BasicLineNo, StatementNo, TokenMap[Keyword].Token, TokenMap[**Index].Token);
@@ -3369,7 +3369,8 @@ int main (int argc, char **argv)
   }
   else
     perror ("ERROR - Write error");
+
   fclose (FpIn);
   fclose (FpOut);
-  return (0);                                                                                     /* (Keep weird compilers happy) */
+  return (!AllOk);                                                                                /* (Keep weird compilers happy) */
 }
