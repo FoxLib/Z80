@@ -46,7 +46,10 @@ protected:
     void frame() {
 
         int fine_x    = 0;
+        int attr_t    = 0;
+        int line_t    = 0;
         int border_x  = 0, border_y = 0;
+        int cycle_per_line = max_cycles_per_frame / 192;
 
         // Автоматическое нажимание на клавиши
         autostart_macro();
@@ -56,6 +59,21 @@ protected:
 
             int t_states = run_instruction();
             t_states_cycle += t_states;
+
+            // Следующая линия для отрисовки
+            attr_t += t_states;
+
+            // Тут можно реализовать мультиколор
+            // --------------------------------------
+            if (attr_t >= cycle_per_line) {
+                attr_t -= cycle_per_line;
+
+                int curline = 0x4000 + 32*((line_t & 0x38)>>3) + 256*(line_t&7) + 2048*(line_t>>6);
+                for (int tm = 0; tm < 32; tm++) update_charline(curline + tm);
+
+                line_t++;
+            }
+            // --------------------------------------
 
             // Каждый такт добавляет x + (320*240)/(70000)
             for (int tx = 0; tx < t_states; tx++) {
@@ -91,7 +109,7 @@ protected:
             first_sta     = 0;
             flash_state   = !flash_state;
 
-            for (int _i = 0x5800; _i < 0x5b00; _i++) update_attrbox(_i);
+            //for (int _i = 0x5800; _i < 0x5b00; _i++) update_attrbox(_i);
         }
 
         // Включить вывод в PNG
@@ -232,8 +250,10 @@ protected:
         memory[address] = data;
 
         // Обновление видеопамяти
+        /*
         if (address < 0x5800)      update_charline(address);
         else if (address < 0x5B00) update_attrbox (address);
+        */
     }
 
     // Чтение из порта
