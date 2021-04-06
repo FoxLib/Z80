@@ -19,6 +19,13 @@
 
 #include "lodepng.cc"
 
+//#define WIDTH  320
+//#define HEIGHT 240
+
+// Видимая область (всего 224 x 312 = 69888 t-states)
+#define WIDTH  352
+#define HEIGHT 296
+
 class Z80Spectrum : public Z80 {
 protected:
 
@@ -28,7 +35,7 @@ protected:
 #endif
     int             sdl_enable;
     int             width, height;
-    unsigned int    fb[320*240];
+    unsigned int    fb[WIDTH*HEIGHT];
     unsigned char   memory[65536];
 
     // Таймер обновления экрана
@@ -39,7 +46,7 @@ protected:
     int   flash_state, flash_counter;
     uint  border_color, border_id;
     int   key_states[8];
-    int   t_states_cycle, millis_per_frame, max_cycles_per_frame;
+    int   t_states_cycle;
 
     // Консольная запись
     int   con_frame_start, con_frame_end, con_frame_fps;
@@ -52,6 +59,7 @@ protected:
     int   lookupfb[192];        // Для более быстрого определения адреса
 
     // Обработка одного кадра
+    // http://www.zxdesign.info/vidparam.shtml
     void frame() {
 
         int fine_x    = 0;
@@ -59,7 +67,10 @@ protected:
         int line_t    = 0;
         int border_x  = 0,
             border_y  = 0;
-        int cycle_per_line = max_cycles_per_frame / 192;
+        int max_cycles_per_frame = 69888;
+
+        int ppu_x = 0,
+            ppu_y = 0;
 
         // Автоматическое нажимание на клавиши
         autostart_macro();
@@ -67,51 +78,42 @@ protected:
         // Выполнить необходимое количество циклов
         while (t_states_cycle < max_cycles_per_frame) {
 
+            // Исполнение инструкции
             int t_states = run_instruction();
             t_states_cycle += t_states;
 
-            // Следующая линия для отрисовки
-            attr_t += t_states;
+            // 1 CPU = 2 PPU
+            for (int w = 0; w < t_states; w++) {
 
-            // Тут можно реализовать мультиколор
-            // --------------------------------------
-            if (attr_t >= cycle_per_line) {
-                attr_t -= cycle_per_line;
+                // Прерывание в самом конце фрейма
+                if (ppu_x == 0 && ppu_y == 296) interrupt(0, 0xff);
 
-                // Отрисовка линии
-                for (int tm = 0; tm < 32; tm++) update_charline(lookupfb[line_t] + tm);
+                int ppu_vx = ppu_x - 72,
+                    ppu_lx = ppu_x - 48;
 
-                // В конце 159 линии вызывается INT#38 (точные тайминги)
-                // if (line_t == 159) interrupt(0, 0xff);
+                // Луч находится в видимой области
+                if (ppu_y >= 16 && ppu_x >= 48) {
 
-                line_t++;
-            }
-            // --------------------------------------
+                    // Рисуется бордер [2x точки на 1 такт]
+                    if (ppu_x < 72 || ppu_x >= 200 || ppu_y < 64 || ppu_y >= 256) {
 
-            // Каждый такт добавляет x + (320*240)/(70000)
-            for (int tx = 0; tx < t_states; tx++) {
-
-                fine_x += (320*240);
-
-                do {
-
-                    // Рисование только лишь в определенных пределах
-                    if (border_x < 32 || border_y < 24 || border_x >= 32+256 || border_y >= 24+192)
-                        pset(border_x, border_y, border_color);
-
-                    border_x++;
-                    if (border_x >= 320) {
-                        border_x = 0;
-                        border_y++;
+                        pset(2*ppu_lx,   ppu_y-16, border_color);
+                        pset(2*ppu_lx+1, ppu_y-16, border_color);
                     }
-
-                    fine_x -= max_cycles_per_frame;
+                    // Рисование знакоместа
+                    else if (ppu_x >= 72 && ppu_y >= 64 && ppu_y < 256 && (ppu_vx & 3) == 0) {
+                        update_charline(lookupfb[ppu_y - 64] + (ppu_vx >> 2));
+                    }
                 }
-                while (fine_x > max_cycles_per_frame);
+
+                ppu_x++;
+                if (ppu_x >= 224) {
+                    ppu_x = 0;
+                    ppu_y++;
+                }
             }
         }
 
-        interrupt(0, 0xff);
         t_states_cycle %= max_cycles_per_frame;
 
         // Мерцающие элементы
@@ -121,8 +123,6 @@ protected:
             flash_counter = 0;
             first_sta     = 0;
             flash_state   = !flash_state;
-
-            //for (int _i = 0x5800; _i < 0x5b00; _i++) update_attrbox(_i);
         }
 
         // Включить вывод в PNG
@@ -259,14 +259,7 @@ protected:
 
         address &= 0xffff;
         if (address < 0x4000) return;
-
         memory[address] = data;
-
-        // Обновление видеопамяти
-        /*
-        if (address < 0x5800)      update_charline(address);
-        else if (address < 0x5B00) update_attrbox (address);
-        */
     }
 
     // Чтение из порта
@@ -356,7 +349,7 @@ protected:
             uint clr = (flash ? (pix ^ flash_state) : pix) ? frcolor : bgcolor;
 
             // Вывести пиксель
-            pset(32 + 8*x + j, 24 + y, clr);
+            pset(48 + 8*x + j, 48 + y, clr);
         }
     }
 
@@ -374,17 +367,17 @@ protected:
     // Установка точки
     void pset(int x, int y, uint color) {
 
-        if (x >= 0 && y >= 0 && x < 320 && y < 240) {
+        if (x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT) {
 
 #ifndef NO_SDL
-            if (sdl_enable && sdl_screen) {
-
+            int x_ = x - 16, y_ = y - 24;
+            if (sdl_enable && sdl_screen && x_ >= 0 && y_ >= 0 && x_ < 320 && y_ < 240) {
                 for (int k = 0; k < 9; k++)
-                    ( (Uint32*)sdl_screen->pixels )[ 3*(x + width*y) + (k%3) + width*(k/3) ] = color;
+                    ( (Uint32*)sdl_screen->pixels )[ 3*(x_ + 3*320*y_) + (k%3) + 3*320*(k/3) ] = color;
             }
 #endif
             // Поменять цвета местами для PNG
-            fb[y*320+x] = (color>>16)&255 | color & 0xff00 | ((color&255)<<16) | 0xff000000;
+            fb[y*WIDTH+x] = (color>>16)&255 | color & 0xff00 | ((color&255)<<16) | 0xff000000;
         }
     }
 
@@ -396,8 +389,8 @@ public:
 #ifndef NO_SDL
         sdl_screen = NULL;
 #endif
-        width      = 320*3;
-        height     = 240*3;
+        width      = WIDTH*3;
+        height     = HEIGHT*3;
         sdl_enable = 1;
         first_sta  = 1;
 
@@ -407,9 +400,6 @@ public:
         ms_clock_old    = 0;
         autostart       = 0;
         frame_counter   = 0;
-
-        millis_per_frame     = 20;
-        max_cycles_per_frame = millis_per_frame*3500;
 
         // Настройки записи фреймов
         con_frame_start = 0;
@@ -498,7 +488,7 @@ public:
             SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
             SDL_EnableUNICODE(1);
 
-            sdl_screen = SDL_SetVideoMode(width, height, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
+            sdl_screen = SDL_SetVideoMode(3*320, 3*240, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
             SDL_WM_SetCaption("ZX Spectrum Virtual Machine", 0);
             SDL_EnableKeyRepeat(500, 30);
 
@@ -823,7 +813,7 @@ public:
         if (con_pngout) {
 
             lodepng_state_init(&state);
-            error = lodepng_encode(&png, &pngsize, (const unsigned char*)fb, 320, 240, &state);
+            error = lodepng_encode(&png, &pngsize, (const unsigned char*)fb, WIDTH, HEIGHT, &state);
 
             // Пока что так сохраняется (!)
             if (!error) { fwrite(png, 1, pngsize, png_file); }
