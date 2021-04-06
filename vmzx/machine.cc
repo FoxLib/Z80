@@ -62,12 +62,13 @@ protected:
     // http://www.zxdesign.info/vidparam.shtml
     void frame() {
 
-        int fine_x    = 0;
-        int attr_t    = 0;
-        int line_t    = 0;
-        int border_x  = 0,
-            border_y  = 0;
-        int max_cycles_per_frame = 69888;
+        int req_int = 1;
+
+        // Sinclair ZX                Sinclair | Pentagon
+        int max_tstates   = 69888; // 69888    | 71680
+        int rows_paper    = 64;    // 64       | 80
+        int cols_paper    = 200;   // 200      | 68
+        int irq_row       = 296;   // 296      | 304
 
         int ppu_x = 0,
             ppu_y = 0;
@@ -76,7 +77,10 @@ protected:
         autostart_macro();
 
         // Выполнить необходимое количество циклов
-        while (t_states_cycle < max_cycles_per_frame) {
+        while (t_states_cycle < max_tstates) {
+
+            // Вызвать прерывание именно здесь, перед инструкцией
+            if (ppu_y == irq_row && ppu_x >= 16 && req_int) { interrupt(0, 0xff); req_int = 0; }
 
             // Исполнение инструкции
             int t_states = run_instruction();
@@ -85,9 +89,6 @@ protected:
             // 1 CPU = 2 PPU
             for (int w = 0; w < t_states; w++) {
 
-                // Прерывание в самом конце фрейма
-                if (ppu_x == 0 && ppu_y == 296) interrupt(0, 0xff);
-
                 int ppu_vx = ppu_x - 72,
                     ppu_lx = ppu_x - 48;
 
@@ -95,7 +96,7 @@ protected:
                 if (ppu_y >= 16 && ppu_x >= 48) {
 
                     // Рисуется бордер [2x точки на 1 такт]
-                    if (ppu_x < 72 || ppu_x >= 200 || ppu_y < 64 || ppu_y >= 256) {
+                    if (ppu_x < 72 || ppu_x >= cols_paper || ppu_y < rows_paper || ppu_y >= 256) {
 
                         pset(2*ppu_lx,   ppu_y-16, border_color);
                         pset(2*ppu_lx+1, ppu_y-16, border_color);
@@ -114,7 +115,7 @@ protected:
             }
         }
 
-        t_states_cycle %= max_cycles_per_frame;
+        t_states_cycle %= max_tstates;
 
         // Мерцающие элементы
         flash_counter++;
@@ -287,7 +288,7 @@ protected:
     // Запись в порт
     void io_write(int port, int data) {
 
-        if ((port & 0xFF) == 0xFE) {
+        if ((port & 1) == 0) {
 
             border_id    = data & 7;
             border_color = get_color(data & 7);
