@@ -2,6 +2,14 @@
 #include "SDL.h"
 #endif
 
+/**
+ * -a Автостарт с командой RUN
+ * -o <файл> Вывод серии PNG в файл (если - то stdout)
+ * -c Запускать без GUI SDL
+ * <file>.(z80|tap) Загрузка снашпота или TAP бейсика
+ * -M <секунды> длительность записи
+ */
+
 #include <sys/timeb.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -41,6 +49,7 @@ protected:
     int   first_sta;            // Досрочно обновить экран
     int   autostart;            // Автостарт при запуске
     int   frame_counter;        // Количество кадров от начала
+    int   lookupfb[192];        // Для более быстрого определения адреса
 
     // Обработка одного кадра
     void frame() {
@@ -48,7 +57,8 @@ protected:
         int fine_x    = 0;
         int attr_t    = 0;
         int line_t    = 0;
-        int border_x  = 0, border_y = 0;
+        int border_x  = 0,
+            border_y  = 0;
         int cycle_per_line = max_cycles_per_frame / 192;
 
         // Автоматическое нажимание на клавиши
@@ -68,8 +78,11 @@ protected:
             if (attr_t >= cycle_per_line) {
                 attr_t -= cycle_per_line;
 
-                int curline = 0x4000 + 32*((line_t & 0x38)>>3) + 256*(line_t&7) + 2048*(line_t>>6);
-                for (int tm = 0; tm < 32; tm++) update_charline(curline + tm);
+                // Отрисовка линии
+                for (int tm = 0; tm < 32; tm++) update_charline(lookupfb[line_t] + tm);
+
+                // В конце 159 линии вызывается INT#38 (точные тайминги)
+                // if (line_t == 159) interrupt(0, 0xff);
 
                 line_t++;
             }
@@ -406,6 +419,10 @@ public:
         filename_pngout = NULL;
         png_file        = NULL;
 
+        // Заполнение таблицы адресов
+        for (int y = 0; y < 192; y++)
+            lookupfb[y] = 0x4000 + 32*((y & 0x38)>>3) + 256*(y&7) + 2048*(y>>6);
+
         loadbin("basic48.rom", 0);
 
         // Все кнопки вначале отпущены
@@ -440,12 +457,20 @@ public:
                     case 'o':
 
                         filename_pngout = argv[u+1];
-                        con_pngout = 1; u++;
+                        con_pngout = 1;
                         if (strcmp(filename_pngout,"-") == 0) {
                             png_file = stdout;
                         } else {
                             png_file = fopen(filename_pngout, "w+");
                         }
+                        u++;
+                        break;
+
+                    // Длительность
+                    case 'M':
+
+                        sscanf(argv[u+1], "%d", &con_frame_end);
+                        con_frame_end *= 50;
                         break;
                 }
 
