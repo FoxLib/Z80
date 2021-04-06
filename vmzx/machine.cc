@@ -80,7 +80,7 @@ protected:
         while (t_states_cycle < max_tstates) {
 
             // Вызвать прерывание именно здесь, перед инструкцией
-            if (ppu_y == irq_row && ppu_x >= 16 && req_int) { interrupt(0, 0xff); req_int = 0; }
+            if (ppu_y == irq_row && req_int) { interrupt(0, 0xff); req_int = 0; }
 
             // Исполнение инструкции
             int t_states = run_instruction();
