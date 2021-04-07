@@ -19,12 +19,8 @@
 
 #include "lodepng.cc"
 
-//#define WIDTH  320
-//#define HEIGHT 240
-
-// Видимая область (всего 224 x 312 = 69888 t-states)
-#define WIDTH  352
-#define HEIGHT 296
+// Видимая область: 224 x 312 = 69888 t-states
+// Общая область: 352x296
 
 class Z80Spectrum : public Z80 {
 protected:
@@ -35,7 +31,7 @@ protected:
 #endif
     int             sdl_enable;
     int             width, height;
-    unsigned int    fb[WIDTH*HEIGHT];
+    unsigned int    fb[320*240];
     unsigned char   memory[65536];
 
     // Таймер обновления экрана
@@ -368,17 +364,18 @@ protected:
     // Установка точки
     void pset(int x, int y, uint color) {
 
-        if (x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT) {
+        x -= 16;
+        y -= 24;
+        if (x >= 0 && y >= 0 && x < 320 && y < 240) {
 
 #ifndef NO_SDL
-            int x_ = x - 16, y_ = y - 24;
-            if (sdl_enable && sdl_screen && x_ >= 0 && y_ >= 0 && x_ < 320 && y_ < 240) {
+            if (sdl_enable && sdl_screen) {
                 for (int k = 0; k < 9; k++)
-                    ( (Uint32*)sdl_screen->pixels )[ 3*(x_ + 3*320*y_) + (k%3) + 3*320*(k/3) ] = color;
+                    ( (Uint32*)sdl_screen->pixels )[ 3*(x + 3*320*y) + (k%3) + 3*320*(k/3) ] = color;
             }
 #endif
             // Поменять цвета местами для PNG
-            fb[y*WIDTH+x] = (color>>16)&255 | color & 0xff00 | ((color&255)<<16) | 0xff000000;
+            fb[y*320+x] = (color>>16)&255 | color & 0xff00 | ((color&255)<<16) | 0xff000000;
         }
     }
 
@@ -390,8 +387,8 @@ public:
 #ifndef NO_SDL
         sdl_screen = NULL;
 #endif
-        width      = WIDTH*3;
-        height     = HEIGHT*3;
+        width      = 320*3;
+        height     = 240*3;
         sdl_enable = 1;
         first_sta  = 1;
 
@@ -814,7 +811,7 @@ public:
         if (con_pngout) {
 
             lodepng_state_init(&state);
-            error = lodepng_encode(&png, &pngsize, (const unsigned char*)fb, WIDTH, HEIGHT, &state);
+            error = lodepng_encode(&png, &pngsize, (const unsigned char*)fb, 320, 240, &state);
 
             // Пока что так сохраняется (!)
             if (!error) { fwrite(png, 1, pngsize, png_file); }
