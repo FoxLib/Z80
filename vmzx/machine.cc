@@ -8,6 +8,7 @@
  * -c Запускать без GUI SDL
  * <file>.(z80|tap) Загрузка снашпота или TAP бейсика
  * -M <секунды> длительность записи
+ * -b [последовательность символов нажатий клавиш]
  */
 
 #include <sys/timeb.h>
@@ -49,6 +50,8 @@ protected:
     int   con_pngout;
     char* filename_pngout;
     FILE* png_file;
+    int   auto_keyb;
+    int   frame_id;
     int   first_sta;            // Досрочно обновить экран
     int   autostart;            // Автостарт при запуске
     int   frame_counter;        // Количество кадров от начала
@@ -143,8 +146,21 @@ protected:
             case 3: key_press(2, 0x08, 0); break;
             case 4: key_press(6, 0x01, 1); break; // ENT
             case 5: key_press(6, 0x01, 0); break;
+            // Выключить или продолжать?
             case 6: autostart = 0; break;
         }
+
+        // Симулятор нажатия на кнопки (SPACE)
+        if (auto_keyb) {
+
+            switch (frame_id) {
+
+                case 25: key_press(7, 0x01, 1); break;
+                case 26: key_press(7, 0x01, 0); break;
+            }
+        }
+
+        frame_id++;
     }
 
     // Занесение нажатия в регистры
@@ -391,6 +407,8 @@ public:
         height     = 240*3;
         sdl_enable = 1;
         first_sta  = 1;
+        auto_keyb  = 0;
+        frame_id   = 0;
 
         t_states_cycle  = 0;
         flash_state     = 0;
@@ -452,6 +470,12 @@ public:
                             png_file = fopen(filename_pngout, "w+");
                         }
                         u++;
+                        break;
+
+                    // Нажатие на пробел через некоторое время
+                    case 'b':
+
+                        auto_keyb = 1;
                         break;
 
                     // Длительность
