@@ -20,6 +20,35 @@
 
 #include "lodepng.cc"
 
+// Для выгрузки BMP https://ru.wikipedia.org/wiki/BMP
+
+// 14 байт
+struct __attribute__((__packed__)) BITMAPFILEHEADER {
+    unsigned short bfType;      // BM
+    unsigned int   bfSize;      // 38518
+    unsigned short bfReserved1; // 0
+    unsigned short bfReserved2; // 0
+    unsigned int   bfOffBits;   // 0x76
+};
+
+// 40 байт
+struct __attribute__((__packed__)) BITMAPINFOHEADER {
+    unsigned int   biSize;          // 0x28 (40)
+    unsigned int   biWidth;         // 320
+    unsigned int   biHeight;        // 240
+    unsigned short biPlanes;        // 1
+    unsigned short biBitCount;      // 4
+    unsigned int   biCompression;   // 0
+    unsigned int   biSizeImage;     // 0x9600 (38400)
+    unsigned int   biXPelsPerMeter; // 0x0B13
+    unsigned int   biYPelsPerMeter; // 0x0B13
+    unsigned int   biClrUsed;       // 0x10 (16)
+    unsigned int   biClrImportant;  // 0
+};
+
+// 4x16 = 64 байта занимает таблица цветов
+
+
 // Видимая область: 224 x 312 = 69888 t-states
 // Общая область: 352x296
 
@@ -32,7 +61,7 @@ protected:
 #endif
     int             sdl_enable;
     int             width, height;
-    unsigned int    fb[320*240];
+    unsigned char   fb[320*240];
     unsigned char   memory[65536];
 
     // Таймер обновления экрана
@@ -41,7 +70,7 @@ protected:
     unsigned int    ms_clock_old;
 
     int   flash_state, flash_counter;
-    uint  border_color, border_id;
+    uint  border_id;
     int   key_states[8];
     int   t_states_cycle;
 
@@ -97,8 +126,8 @@ protected:
                     // Рисуется бордер [2x точки на 1 такт]
                     if (ppu_x < 72 || ppu_x >= cols_paper || ppu_y < rows_paper || ppu_y >= 256) {
 
-                        pset(2*ppu_lx,   ppu_y-16, border_color);
-                        pset(2*ppu_lx+1, ppu_y-16, border_color);
+                        pset(2*ppu_lx,   ppu_y-16, border_id);
+                        pset(2*ppu_lx+1, ppu_y-16, border_id);
                     }
                     // Рисование знакоместа
                     else if (ppu_x >= 72 && ppu_y >= 64 && ppu_y < 256 && (ppu_vx & 3) == 0) {
@@ -125,8 +154,9 @@ protected:
             flash_state   = !flash_state;
         }
 
-        // Включить вывод в PNG
-        encodepng();
+        // При наличии опции автостарта не кодировать PNG
+//        if (autostart <= 1 && con_pngout) encodepng();
+        if (autostart <= 1 && con_pngout) encodebmp();
 
         frame_counter++;
     }
@@ -301,9 +331,7 @@ protected:
     void io_write(int port, int data) {
 
         if ((port & 1) == 0) {
-
-            border_id    = data & 7;
-            border_color = get_color(data & 7);
+            border_id = data & 7;
         }
     }
 
@@ -350,8 +378,8 @@ protected:
         int x = address & 0x1F;
 
         int attr    = memory[ 0x5800 + x + ((address & 0x1800) >> 3) + (address & 0xE0) ];
-        int bgcolor = get_color((attr & 0x38) >> 3);
-        int frcolor = get_color((attr & 0x07) + ((attr & 0x40) >> 3));
+        int bgcolor = (attr & 0x38) >> 3;
+        int frcolor = (attr & 0x07) + ((attr & 0x40) >> 3);
         int flash   = (attr & 0x80) ? 1 : 0;
 
         for (int j = 0; j < 8; j++) {
@@ -380,6 +408,8 @@ protected:
     // Установка точки
     void pset(int x, int y, uint color) {
 
+        color &= 15;
+
         x -= 16;
         y -= 24;
         if (x >= 0 && y >= 0 && x < 320 && y < 240) {
@@ -387,11 +417,20 @@ protected:
 #ifndef NO_SDL
             if (sdl_enable && sdl_screen) {
                 for (int k = 0; k < 9; k++)
-                    ( (Uint32*)sdl_screen->pixels )[ 3*(x + 3*320*y) + (k%3) + 3*320*(k/3) ] = color;
+                    ( (Uint32*)sdl_screen->pixels )[ 3*(x + 3*320*y) + (k%3) + 3*320*(k/3) ] = get_color(color);
             }
 #endif
-            // Поменять цвета местами для PNG
-            fb[y*320+x] = (color>>16)&255 | color & 0xff00 | ((color&255)<<16) | 0xff000000;
+            //fb[y*320+x] = (color>>16)&255 | color & 0xff00 | ((color&255)<<16) | 0xff000000;
+
+
+            // Запись фреймбуфера
+            unsigned int ptr = (239-y)*160+(x>>1);
+            if (x&1) {
+                fb[ptr] = (fb[ptr] & 0xf0) | (color);
+            } else {
+                fb[ptr] = (fb[ptr] & 0x0f) | (color<<4);
+            }
+
         }
     }
 
@@ -820,7 +859,7 @@ public:
         fclose(fp);
     }
 
-    // Кодировать в PNG-файл
+    /*  // Кодировать в PNG-файл (это едленно)
     void encodepng() {
 
         unsigned       error;
@@ -828,23 +867,47 @@ public:
         size_t         pngsize;
         LodePNGState   state;
 
-        // При наличии опции автостарта не кодировать PNG
-        if (autostart > 1)
-            return;
+        lodepng_state_init(&state);
+        error = lodepng_encode(&png, &pngsize, (const unsigned char*)fb, 320, 240, &state);
 
-        if (con_pngout) {
+        // Пока что так сохраняется (!)
+        if (!error) { fwrite(png, 1, pngsize, png_file); }
 
-            lodepng_state_init(&state);
-            error = lodepng_encode(&png, &pngsize, (const unsigned char*)fb, 320, 240, &state);
+        // if there's an error, display it
+        if (error) printf("error %u: %s\n", error, lodepng_error_text(error));
 
-            // Пока что так сохраняется (!)
-            if (!error) { fwrite(png, 1, pngsize, png_file); }
-
-            /*if there's an error, display it*/
-            if (error) printf("error %u: %s\n", error, lodepng_error_text(error));
-
-            lodepng_state_cleanup(&state);
-            free(png);
-        }
+        lodepng_state_cleanup(&state);
+        free(png);
     }
+    */
+
+    void encodebmp() {
+
+        struct BITMAPFILEHEADER head = {0x4D42, 38518, 0, 0, 0x76};
+        struct BITMAPINFOHEADER info = {0x28, 320, 240, 1, 4, 0, 0x9600, 0xb13, 0xb13, 16, 0};
+        unsigned char colors[64] = {
+            0x00, 0x00, 0x00, 0x00, // 0
+            0xc0, 0x00, 0x00, 0x00, // 1
+            0x00, 0x00, 0xc0, 0x00, // 2
+            0xc0, 0x00, 0xc0, 0x00, // 3
+            0x00, 0xc0, 0x00, 0x00, // 4
+            0xc0, 0xc0, 0x00, 0x00, // 5
+            0x00, 0xc0, 0xc0, 0x00, // 6
+            0xc0, 0xc0, 0xc0, 0x00, // 7
+            0x00, 0x00, 0x00, 0x00, // 8
+            0xff, 0x00, 0x00, 0x00, // 9
+            0x00, 0x00, 0xff, 0x00, // 10
+            0xff, 0x00, 0xff, 0x00, // 11
+            0x00, 0xff, 0x00, 0x00, // 12
+            0xff, 0xff, 0x00, 0x00, // 13
+            0x00, 0xff, 0xff, 0x00, // 14
+            0xff, 0xff, 0xff, 0x00  // 15
+        };
+
+        fwrite(&head, 1, sizeof(struct BITMAPFILEHEADER), png_file);
+        fwrite(&info, 1, sizeof(struct BITMAPINFOHEADER), png_file);
+        fwrite(&colors, 1, 64, png_file);
+        fwrite(fb, 1, 160*240, png_file);
+    }
+
 };

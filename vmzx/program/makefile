@@ -1,4 +1,4 @@
-NAME=01_hello
+NAME=02_snake
 FF1=ffmpeg -framerate 50 -r 50 -i
 FF2=-f mp4 -q:v 0 -vcodec mpeg4 -y
 B2T=./../bas2tap/bas2tap

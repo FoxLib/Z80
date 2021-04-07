@@ -11,10 +11,10 @@ tap:
 	./vmzx basic.z80 program.tap
 dizzy3:
 	./vmzx dizzy3.z80
-dizzy3png:
-	./vmzx dizzy3.z80 -o record.png
-	make png2mp4
-png2mp4:
-	$(FF1) record.png $(FF2) record.mp4
+dizzy3bmp:
+	./vmzx dizzy3.z80 -o record.bmp
+	make bmp2mp4
+bmp2mp4:
+	$(FF1) record.bmp $(FF2) record.mp4
 mp4:
 	./vmzx dizzy3.z80 -o - | $(FF1) - $(SCALE) $(FF2) record.mp4
