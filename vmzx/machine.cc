@@ -48,7 +48,6 @@ struct __attribute__((__packed__)) BITMAPINFOHEADER {
 
 // 4x16 = 64 байта занимает таблица цветов
 
-
 // Видимая область: 224 x 312 = 69888 t-states
 // Общая область: 352x296
 
@@ -61,7 +60,8 @@ protected:
 #endif
     int             sdl_enable;
     int             width, height;
-    unsigned char   fb[320*240];
+    unsigned char   fb[160*240];        // Следующий кадр
+    unsigned char   pb[160*240];        // Предыдущий кадр
     unsigned char   memory[65536];
 
     // Таймер обновления экрана
@@ -77,9 +77,11 @@ protected:
     // Консольная запись
     int   con_frame_start, con_frame_end, con_frame_fps;
     int   con_pngout;
+    int   diff_prev_frame;
     char* filename_pngout;
     FILE* png_file;
     int   auto_keyb;
+    int   skip_dup_frame;
     int   frame_id;
     int   first_sta;            // Досрочно обновить экран
     int   autostart;            // Автостарт при запуске
@@ -155,7 +157,6 @@ protected:
         }
 
         // При наличии опции автостарта не кодировать PNG
-//        if (autostart <= 1 && con_pngout) encodepng();
         if (autostart <= 1 && con_pngout) encodebmp();
 
         frame_counter++;
@@ -420,8 +421,6 @@ protected:
                     ( (Uint32*)sdl_screen->pixels )[ 3*(x + 3*320*y) + (k%3) + 3*320*(k/3) ] = get_color(color);
             }
 #endif
-            //fb[y*320+x] = (color>>16)&255 | color & 0xff00 | ((color&255)<<16) | 0xff000000;
-
 
             // Запись фреймбуфера
             unsigned int ptr = (239-y)*160+(x>>1);
@@ -431,6 +430,8 @@ protected:
                 fb[ptr] = (fb[ptr] & 0x0f) | (color<<4);
             }
 
+            // Тест повторного кадра: если есть какое-то отличие, то ставить diff
+            if (skip_dup_frame && pb[ptr] != fb[ptr]) diff_prev_frame = 1;
         }
     }
 
@@ -448,6 +449,7 @@ public:
         first_sta  = 1;
         auto_keyb  = 0;
         frame_id   = 0;
+        diff_prev_frame = 1; // Первый кадр всегда отличается
 
         t_states_cycle  = 0;
         flash_state     = 0;
@@ -455,6 +457,7 @@ public:
         ms_clock_old    = 0;
         autostart       = 0;
         frame_counter   = 0;
+        skip_dup_frame  = 0;
 
         // Настройки записи фреймов
         con_frame_start = 0;
@@ -522,6 +525,12 @@ public:
 
                         sscanf(argv[u+1], "%d", &con_frame_end);
                         con_frame_end *= 50;
+                        break;
+
+                    // Скип дублирующийся фреймов
+                    case 's':
+
+                        skip_dup_frame = 1;
                         break;
                 }
 
@@ -883,6 +892,10 @@ public:
 
     void encodebmp() {
 
+        // Предыдущий кадр не отличается
+        if (skip_dup_frame && diff_prev_frame == 0)
+            return;
+
         struct BITMAPFILEHEADER head = {0x4D42, 38518, 0, 0, 0x76};
         struct BITMAPINFOHEADER info = {0x28, 320, 240, 1, 4, 0, 0x9600, 0xb13, 0xb13, 16, 0};
         unsigned char colors[64] = {
@@ -908,6 +921,13 @@ public:
         fwrite(&info, 1, sizeof(struct BITMAPINFOHEADER), png_file);
         fwrite(&colors, 1, 64, png_file);
         fwrite(fb, 1, 160*240, png_file);
+
+        // Копировать предыдущий кадр
+        if (skip_dup_frame) {
+
+            memcpy(pb, fb, 160*240);
+            diff_prev_frame = 0;
+        }
     }
 
 };

@@ -18,3 +18,6 @@ bmp2mp4:
 	$(FF1) record.bmp $(FF2) record.mp4
 mp4:
 	./vmzx dizzy3.z80 -o - | $(FF1) - $(SCALE) $(FF2) record.mp4
+# Скипать повторные кадры
+mp4skip:
+	./vmzx dizzy3.z80 -s -o - | $(FF1) - $(SCALE) $(FF2) record.mp4
