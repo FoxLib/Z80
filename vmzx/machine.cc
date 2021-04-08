@@ -737,12 +737,16 @@ public:
                 exit(1);
             }
 
-            if (_hmode != 3 && _hmode != 4) {
+            // Поддерживаемые режимы: 3,4(128k) 0,1(48k)
+            if (_hmode != 0 && _hmode != 1 && _hmode != 3 && _hmode != 4) {
 
                 sprintf(strbuf, "ZXCORE: Hardware mode is not 128k (mode=%d, pc=%x, cursor=%x)\n", _hmode, pc, cursor);
                 fputs(strbuf, stderr);
                 exit(1);
             }
+
+            // Для 48k будет всегда регистр памяти равен 10h
+            if (_hmode < 2) port_7ffd = 0x0010;
 
             // Следующий блок
             while (cursor < fsize) {
@@ -750,8 +754,9 @@ public:
                 int data_size = data[cursor] + data[cursor+1]*256;
 
                 // Для 128k данные в [3..11]
-                int data_bank = data[cursor + 2] - 3;
+                int data_bank = z80file_bankmap(_hmode, data[cursor + 2]);
 
+                // Переход к данным
                 cursor += 3;
 
                 // Не скомпрессированные данные
@@ -773,6 +778,28 @@ public:
 
             loadz80block(1, cursor, address, data, fsize, rle);
         }
+    }
+
+    int z80file_bankmap(int mode, int bank) {
+
+        // page0..7
+        if (mode == 3 || mode == 4) {
+            return bank - 3;
+        }
+        else if (mode == 0 || mode == 1) {
+
+            switch (bank) {
+
+                case 4: return 2; // 8000-bfff
+                case 5: return 0; // c000-ffff
+                case 8: return 5; // 4000-7fff
+                default:
+
+                    printf("Z80 loader: can't recognize bank %d for hmode=%d ", bank, mode);
+                    exit(1);
+            }
+        }
+
     }
 
     // Загрузка блока в память
