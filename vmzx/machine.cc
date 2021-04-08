@@ -21,8 +21,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "lodepng.cc"
-
 #ifndef NO_SDL
 #define MAX_AUDIOSDL_BUFFER 882*16
 
