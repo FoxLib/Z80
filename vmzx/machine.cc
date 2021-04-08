@@ -11,6 +11,7 @@
  * -b [последовательность символов нажатий клавиш]
  * -s Пропуск повторяющегося кадра
  * -2 Включить режим 128к
+ * -w wav-файл для записи звука
  */
 
 #include <sys/timeb.h>
@@ -48,6 +49,25 @@ struct __attribute__((__packed__)) BITMAPINFOHEADER {
     unsigned int   biClrImportant;  // 0
 };
 
+// 44 байта https://audiocoding.ru/articles/2008-05-22-wav-file-structure/
+struct __attribute__((__packed__)) WAVEFMTHEADER {
+
+    unsigned int    chunkId;        // RIFF 0x52494646
+    unsigned int    chunkSize;
+    unsigned int    format;         // WAVE 0x57415645
+    unsigned int    subchunk1Id;    // fmt (0x666d7420)
+    unsigned int    subchunk1Size;  // 16
+    unsigned short  audioFormat;    // 1
+    unsigned short  numChannels;    // 2
+    unsigned int    sampleRate;     // 44100
+    unsigned int    byteRate;       //
+    unsigned short  blockAlign;     //
+    unsigned short  bitsPerSample;  //
+    unsigned int    subchunk2Id;    // data 0x64617461
+    unsigned int    subchunk2Size;  // Количество байт в области данных.
+
+};
+
 // 4x16 = 64 байта занимает таблица цветов
 
 // Видимая область: 224 x 312 = 69888 t-states
@@ -73,16 +93,16 @@ protected:
     unsigned int    ms_clock_old;
 
     int   flash_state, flash_counter;
-    uint  border_id;
+    uint  border_id, port_fe;
     int   key_states[8];
-    int   t_states_cycle;
+    int   t_states_cycle, t_states_wav;
 
     // Консольная запись
     int   con_frame_start, con_frame_end, con_frame_fps;
     int   con_pngout;
     int   diff_prev_frame;
-    char* filename_pngout;
     FILE* png_file;
+    FILE* wave_file;
     int   auto_keyb;
     int   skip_dup_frame;
     int   frame_id;
@@ -95,11 +115,13 @@ protected:
     // Периферия
     int   ay_register, ay_data, ay_regs[16];
     int   port_7ffd;
+    unsigned int wav_cursor;
 
     // Обработка одного кадра
     // http://www.zxdesign.info/vidparam.shtml
     void frame() {
 
+        unsigned char tmp[2];
         int req_int = 1;
 
         // Sinclair ZX                Sinclair | Pentagon
@@ -108,8 +130,7 @@ protected:
         int cols_paper    = 200;   // 200      | 68
         int irq_row       = 296;   // 296      | 304
 
-        int ppu_x = 0,
-            ppu_y = 0;
+        int ppu_x = 0, ppu_y = 0, max_audio_cycle = max_tstates*50;
 
         // Автоматическое нажимание на клавиши
         autostart_macro();
@@ -123,6 +144,28 @@ protected:
             // Исполнение инструкции
             int t_states = run_instruction();
             t_states_cycle += t_states;
+
+            // Запись в wav звука (учитывая автостарт)
+            if (wave_file && autostart <= 1) {
+
+                t_states_wav += 44100 * t_states;
+
+                // К следующему звуковому тику
+                if (t_states_wav > max_audio_cycle) {
+                    t_states_wav %= max_audio_cycle;
+
+                    // Пока что пишется порт бипера
+                    int beep = !!(port_fe&0x10) ^ !!(port_fe&0x08);
+
+                    tmp[0] = beep ? 0xff : 0x00; // Left
+                    tmp[1] = beep ? 0xff : 0x00; // Right
+
+                    // @todo выдать звук в буфер SDL
+                    fwrite(tmp, 1, 2, wave_file);
+                    wav_cursor += 2;
+                }
+
+            }
 
             // 1 CPU = 2 PPU
             for (int w = 0; w < t_states; w++) {
@@ -375,7 +418,9 @@ protected:
         else if (port == 0xBFFD) { ay_data = data; }
         else if (port == 0x1FFD) { /* nothing */ }
         else if ((port & 1) == 0) {
+
             border_id = (data & 7);
+            port_fe = data;
         }
     }
 
@@ -494,14 +539,17 @@ public:
 
         port_7ffd       = 0x0010; // Первично указывает на 48k ROM
         border_id       = 0;
+        port_fe         = 0;
 
         // Настройки записи фреймов
         con_frame_start = 0;
         con_frame_end   = 150;
         con_frame_fps   = 30;
         con_pngout      = 0;
-        filename_pngout = NULL;
+        wav_cursor      = 0;
+        t_states_wav    = 0;
         png_file        = NULL;
+        wave_file       = NULL;
 
         // Заполнение таблицы адресов
         for (int y = 0; y < 192; y++)
@@ -519,7 +567,15 @@ public:
 #ifndef NO_SDL
         if (sdl_enable) SDL_Quit();
 #endif
+
+        // Финализация видеопотока
         if (png_file) fclose(png_file);
+
+        // Финализация WAV
+        if (wave_file) {
+            waveFmtHeader();
+            fclose(wave_file);
+        }
     }
 
     // Разбор аргументов
@@ -541,12 +597,11 @@ public:
                     // Файл для записи видео
                     case 'o':
 
-                        filename_pngout = argv[u+1];
                         con_pngout = 1;
-                        if (strcmp(filename_pngout,"-") == 0) {
+                        if (strcmp(argv[u+1],"-") == 0) {
                             png_file = stdout;
                         } else {
-                            png_file = fopen(filename_pngout, "w+");
+                            png_file = fopen(argv[u+1], "w+");
                         }
                         u++;
                         break;
@@ -572,6 +627,15 @@ public:
 
                     // 128k режим
                     case '2': port_7ffd = 0; break;
+
+                    // Файл для записи звука
+                    case 'w':
+
+                        wave_file = fopen(argv[u+1], "wb");
+                        if (wave_file == NULL) { printf("Can't open file %s for writing\n", argv[u+1]); exit(1); }
+                        fseek(wave_file, 44, SEEK_SET);
+                        u++;
+                        break;
                 }
 
             }
@@ -1084,4 +1148,27 @@ public:
         }
     }
 
+    // Запись заголовка
+    void waveFmtHeader() {
+
+        struct WAVEFMTHEADER head = {
+            0x46464952,
+            (wav_cursor + 0x24),
+            0x45564157,
+            0x20746d66,
+            16,     // 16=PCM
+            1,      // Тип
+            2,      // Каналы
+            44100,  // Частота дискретизации
+            88200,  // Байт в секунду
+            2,      // Байт на семпл (1+1)
+            8,      // Бит на семпл
+            0x61746164, // "data"
+            wav_cursor
+        };
+
+        fseek(wave_file, 0, SEEK_SET);
+        fwrite(&head, 1, sizeof(WAVEFMTHEADER), wave_file);
+
+    }
 };
