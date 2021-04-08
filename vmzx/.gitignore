@@ -1,7 +1,7 @@
 vmzx
 bas2tap
 /*.z80
+/*.tap
 *.mp4
 *.wav
 *.bmp
-*.tap
