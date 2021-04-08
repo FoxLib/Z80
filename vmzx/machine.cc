@@ -136,7 +136,7 @@ protected:
     int   ab_cursor;
 
     // Консольная запись
-    int   con_frame_start, con_frame_end, con_frame_fps;
+    int   con_frame_start, con_frame_end, con_frame_fps, skip_first_frames;
     int   con_pngout;
     int   diff_prev_frame;
     FILE* png_file;
@@ -693,6 +693,7 @@ public:
         port_fe         = 0;
         ay_envelope_first = 1;
         ay_noise_tick   = 0;
+        skip_first_frames = 0;
 
         // Настройки записи фреймов
         con_frame_start = 0;
@@ -782,18 +783,21 @@ public:
                         auto_keyb = 1;
                         break;
 
+                    // Пропуск кадров
+                    case 'm':
+
+                        sscanf(argv[u+1], "%d", &skip_first_frames); u++;
+                        break;
+
                     // Длительность
                     case 'M':
 
-                        sscanf(argv[u+1], "%d", &con_frame_end);
+                        sscanf(argv[u+1], "%d", &con_frame_end); u++;
                         con_frame_end *= 50;
                         break;
 
                     // Скип дублирующийся фреймов
-                    case 's':
-
-                        skip_dup_frame = 1;
-                        break;
+                    case 's': skip_dup_frame = 1; break;
 
                     // 128k режим
                     case '2': port_7ffd = 0; break;
@@ -1272,6 +1276,12 @@ public:
     }
 
     void encodebmp(int audio_c) {
+
+        // Пропуск первых кадров
+        if (skip_first_frames) {
+            skip_first_frames--;
+            return;
+        }
 
         // Предыдущий кадр не отличается
         if (skip_dup_frame && diff_prev_frame == 0)
