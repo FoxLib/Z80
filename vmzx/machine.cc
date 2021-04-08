@@ -54,6 +54,13 @@ void sdl_audio_buffer(void* udata, unsigned char* stream, int len) {
 
 // Для выгрузки BMP https://ru.wikipedia.org/wiki/BMP
 
+static const int ay_levels[16] = {
+    0x0000, 0x0385, 0x053D, 0x0770,
+    0x0AD7, 0x0FD5, 0x15B0, 0x230C,
+    0x2B4C, 0x43C1, 0x5A4B, 0x732F,
+    0x9204, 0xAFF1, 0xD921, 0xFFFF
+};
+
 // 14 байт
 struct __attribute__((__packed__)) BITMAPFILEHEADER {
     unsigned short bfType;      // BM
@@ -144,7 +151,10 @@ protected:
     char  strbuf[256];
 
     // Периферия
-    int   ay_register, ay_data, ay_regs[16];
+    int   ay_register, ay_regs[16], ay_amp[3];
+    int   ay_tone_tick[3], ay_tone_period[3], ay_tone_high[3];
+    int   ay_tone_levels[16];
+    int   ay_envelope_first, ay_noise_tick;
     int   port_7ffd;
 
     unsigned char audio_frame[44100];
@@ -160,12 +170,12 @@ protected:
         int audio_c = 0;
 
         // Sinclair ZX                Sinclair | Pentagon
-        int max_tstates   = 69888; // 69888    | 71680 (или 70908)
+        int max_tstates   = 71680; // 69888    | 71680 (или 70908)
         int rows_paper    = 64;    // 64       | 80
         int cols_paper    = 200;   // 200      | 68
         int irq_row       = 296;   // 296      | 304
 
-        int ppu_x = 0, ppu_y = 0, max_audio_cycle = max_tstates*50;
+        int ppu_x = 0, ppu_y = 0, max_audio_cycle = max_tstates*50, ay_state = 0;
 
         // Автоматическое нажимание на клавиши
         autostart_macro();
@@ -176,12 +186,16 @@ protected:
             // Вызвать прерывание именно здесь, перед инструкцией
             if (ppu_y == irq_row && req_int) { interrupt(0, 0xff); req_int = 0; }
 
+            // Детект того, где находится луч в данный момент
+            // -- mem_write | mem_read из contended memory в области рисования
+            // -- io_write | io_read в области бордера
+
             // Исполнение инструкции
             int t_states = run_instruction();
             t_states_cycle += t_states;
 
             // Запись в wav звука (учитывая автостарт)
-            if (wave_file && autostart <= 1 && con_pngout) {
+            if (autostart <= 1) {
 
                 t_states_wav += 44100 * t_states;
 
@@ -193,13 +207,18 @@ protected:
                     // Пока что пишется порт бипера
                     int beep = !!(port_fe&0x10) ^ !!(port_fe&0x08);
 
-                    tmp[0] = beep ? 0xa0 : 0x60; // Left
-                    tmp[1] = beep ? 0xa0 : 0x60; // Right
+                    int left  = beep ? 0xff : 0x80;
+                    int right = beep ? 0xff : 0x80;
+
+                    // Использовать AY
+                    ay_amp_adder(left, right);
+
+                    tmp[0] = left;
+                    tmp[1] = right;
 
                     // Запись во временный буфер
                     audio_frame[audio_c++] = tmp[0];
                     audio_frame[audio_c++] = tmp[1];
-
 #ifndef NO_SDL
                     // Запись аудиострима в буфер (с циклом)
                     AudioZXFrame = ab_cursor / 882;
@@ -212,6 +231,9 @@ protected:
 
             // 1 CPU = 2 PPU
             for (int w = 0; w < t_states; w++) {
+
+                // Каждые 32 тика срабатывает AY-чип
+                if (((ay_state++) & 0x1f) == 0) ay_tick();
 
                 int ppu_vx = ppu_x - 72,
                     ppu_lx = ppu_x - 48;
@@ -431,6 +453,8 @@ protected:
         if (port == 0x7ffd) {
             return port_7ffd;
         }
+        else if (port == 0xFFFD) { return ay_register; }
+        else if (port == 0xBFFD) { return ay_regs[ay_register%15]; }
         else if ((port & 1) == 0) {
 
             int result = 0xff;
@@ -456,15 +480,94 @@ protected:
             port_7ffd = data;
         }
         // AY address register
-        else if (port == 0xfffd) { ay_register = data; }
+        else if (port == 0xFFFD) { ay_register = data; }
         // AY address data
-        else if (port == 0xBFFD) { ay_data = data; }
+        else if (port == 0xBFFD) { ay_write_data(data); }
         else if (port == 0x1FFD) { /* nothing */ }
         else if ((port & 1) == 0) {
 
             border_id = (data & 7);
             port_fe = data;
         }
+    }
+
+    // -----------------------------------------------------------------
+    // Звук
+    // -----------------------------------------------------------------
+
+    // Получение тональности канала 0,1,2
+    int ay_get_tone(int channel) { return ay_regs[2*channel] + 256*(ay_regs[2*channel+1]&15); }
+    int ay_get_noise_period()    { return ay_regs[6] & 0x1f; }
+    int at_get_env_period()      { return ay_regs[11] + (ay_regs[12]<<8); }
+
+    void ay_write_data(int data) {
+
+        int reg_id  = ay_register & 15;
+        int tone_id = reg_id >> 1;
+
+        ay_regs[reg_id] = data;
+
+        switch (reg_id) {
+
+            // Перенос во внутренний счетчик
+            case 0: case 1:
+            case 2: case 3:
+            case 4: case 5:
+
+                ay_tone_period[tone_id] = ay_get_tone(tone_id);
+
+                if (ay_tone_period[tone_id] == 0) {
+                    ay_tone_period[tone_id] = 1;
+                }
+
+                // Это типа чтобы звук не был такой обалдевший
+                if (ay_tone_tick[tone_id] >= ay_tone_period[tone_id]*2)
+                    ay_tone_tick[tone_id] %= ay_tone_period[tone_id]*2;
+
+                break;
+
+            // Сброс шума
+            case 6:  ay_noise_tick = 0; break;
+            case 13: ay_envelope_first = 1; break;
+        }
+    }
+
+    // Тикер каждые 1/44100 секунды
+    void ay_tick() {
+
+        int mixer = ay_regs[7];
+
+        // К периоду тона +2
+        for (int _tone = 0; _tone < 3; _tone++) {
+
+            int level = ay_tone_levels[ay_regs[8 + _tone] & 15];
+
+            // Счетчик следующей частоты
+            ay_tone_tick[_tone] += 2;
+
+            // Тикер сработал
+            if (ay_tone_tick[_tone] >= ay_tone_period[_tone]) {
+                ay_tone_tick[_tone] %= ay_tone_period[_tone];
+
+                // Переброска состояния 0->1
+                ay_tone_high[_tone] = !ay_tone_high[_tone];
+
+                // Канал разрешен -1..1
+                if (!(mixer & (1 << _tone))) {
+                    ay_amp[_tone] = level * ay_tone_high[_tone];
+                }
+            }
+        }
+    }
+
+    // Добавить уровень
+    void ay_amp_adder(int& left, int& right) {
+
+        left  += ay_amp[0] + ay_amp[1];
+        right += ay_amp[2] + ay_amp[1];
+
+        if (left  > 255) left  = 255; else if (left  < 0) left  = 0;
+        if (right > 255) right = 255; else if (right < 0) right = 0;
     }
 
     // -----------------------------------------------------------------
@@ -583,6 +686,8 @@ public:
         port_7ffd       = 0x0010; // Первично указывает на 48k ROM
         border_id       = 0;
         port_fe         = 0;
+        ay_envelope_first = 1;
+        ay_noise_tick   = 0;
 
         // Настройки записи фреймов
         con_frame_start = 0;
@@ -605,8 +710,21 @@ public:
         loadrom("48k.rom",  1);
         loadrom("128k.rom", 0);
 
+        // Коррекция уровня
+        for (int _f = 0; _f < 16; _f++) {
+            ay_tone_levels[_f] = (ay_levels[_f]*256 + 0x8000) / 0xffff;
+        }
+
+        for (int _f = 0; _f < 3; _f++) {
+
+            ay_tone_high[_f]   = 0;
+            ay_tone_tick[_f]   = 0;
+            ay_tone_period[_f] = 1;
+        }
+
         // Все кнопки вначале отпущены
-        for (int _i = 0; _i < 8; _i++) key_states[_i] = 0xff;
+        for (int _i = 0; _i < 8; _i++)
+            key_states[_i] = 0xff;
     }
 
     ~Z80Spectrum() {
@@ -1181,7 +1299,7 @@ public:
         fwrite(fb, 1, 160*240, png_file);
 
         // Запись некоторого количества фреймов в аудиобуфер
-        if (audio_c) {
+        if (audio_c && wave_file) {
 
             fwrite(audio_frame, 1, audio_c, wave_file);
             wav_cursor += audio_c;
