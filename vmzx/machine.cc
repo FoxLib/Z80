@@ -90,6 +90,7 @@ protected:
     int   autostart;            // Автостарт при запуске
     int   frame_counter;        // Количество кадров от начала
     int   lookupfb[192];        // Для более быстрого определения адреса
+    char  strbuf[256];
 
     // Периферия
     int   ay_register, ay_data;
@@ -730,12 +731,16 @@ public:
             else if (_len == 55) { cursor = 87; version = 3; }
 
             if (version > 2) {
-                printf("ZXCORE: Z80 file has %d version\n", version);
+
+                sprintf(strbuf, "ZXCORE: Z80 file has %d version\n", version);
+                fputs(strbuf, stderr);
                 exit(1);
             }
 
             if (_hmode != 3 && _hmode != 4) {
-                printf("ZXCORE: Hardware mode is not 128k (mode=%d, pc=%x, cursor=%x)\n", _hmode, pc, cursor);
+
+                sprintf(strbuf, "ZXCORE: Hardware mode is not 128k (mode=%d, pc=%x, cursor=%x)\n", _hmode, pc, cursor);
+                fputs(strbuf, stderr);
                 exit(1);
             }
 
@@ -854,58 +859,58 @@ public:
         int bsize = tapfile[0x15] + tapfile[0x16]*256 - 2;
 
         // Запись в программную область
-        for (int q = 0; q < bsize; q++) memory[0x5ccb + q] = tapfile[0x18 + q];
+        for (int q = 0; q < bsize; q++) memory[c48k_address(0x5ccb+q, 1)] = tapfile[0x18 + q];
 
         int endp = 0x5ccb + bsize;
         int next = endp;
 
         // END OF PROGRAM
-        memory[endp ]  = 0x80;
-        memory[endp+1] = 0x0D; // Линия 1 (next+0)
-        memory[endp+2] = 0x80; //         (next+1)
-        memory[endp+3] = 0x22; //         (next+2)
-        memory[endp+4] = 0x0D; // Линия 2 (next+3)
-        memory[endp+5] = 0x80; //         (next+4)
+        memory[c48k_address(endp, 1)]  = 0x80;
+        memory[c48k_address(endp+1, 1)] = 0x0D; // Линия 1 (next+0)
+        memory[c48k_address(endp+2, 1)] = 0x80; //         (next+1)
+        memory[c48k_address(endp+3, 1)] = 0x22; //         (next+2)
+        memory[c48k_address(endp+4, 1)] = 0x0D; // Линия 2 (next+3)
+        memory[c48k_address(endp+5, 1)] = 0x80; //         (next+4)
 
         // VARS
-        memory[0x5C4B] =  next & 255;
-        memory[0x5C4C] = (next>>8) & 255;
+        memory[c48k_address(0x5C4B, 1)] =  next & 255;
+        memory[c48k_address(0x5C4C, 1)] = (next>>8) & 255;
 
         next++;
 
         // E-LINE :: https://skoolkid.github.io/rom/asm/5C59.html
-        memory[0x5C59] =  next & 255;
-        memory[0x5C5A] = (next>>8) & 255;
+        memory[c48k_address(0x5C59, 1)] =  next & 255;
+        memory[c48k_address(0x5C5A, 1)] = (next>>8) & 255;
 
         // K-CUR - Address of cursor :: https://skoolkid.github.io/rom/asm/5C5B.html
-        memory[0x5C5B] =  next & 255;
-        memory[0x5C5C] = (next>>8) & 255;
+        memory[c48k_address(0x5C5B, 1)] =  next & 255;
+        memory[c48k_address(0x5C5C, 1)] = (next>>8) & 255;
 
         next += 2;
 
         // https://skoolkid.github.io/rom/asm/5C61.html
-        memory[0x5C61] =  next & 255;
-        memory[0x5C62] = (next>>8) & 255;
+        memory[c48k_address(0x5C61, 1)] =  next & 255;
+        memory[c48k_address(0x5C62, 1)] = (next>>8) & 255;
 
         // https://skoolkid.github.io/rom/asm/5C63.html
-        memory[0x5C63] =  next & 255;
-        memory[0x5C64] = (next>>8) & 255;
+        memory[c48k_address(0x5C63, 1)] =  next & 255;
+        memory[c48k_address(0x5C64, 1)] = (next>>8) & 255;
 
         // https://skoolkid.github.io/rom/asm/5C65.html
-        memory[0x5C65] =  next & 255;
-        memory[0x5C66] = (next>>8) & 255;
+        memory[c48k_address(0x5C65, 1)] =  next & 255;
+        memory[c48k_address(0x5C66, 1)] = (next>>8) & 255;
 
         next++;
 
         // https://skoolkid.github.io/rom/asm/5C5D.html
-        memory[0x5C5D] =  next & 255;
-        memory[0x5C5E] = (next>>8) & 255;
+        memory[c48k_address(0x5C5D, 1)] =  next & 255;
+        memory[c48k_address(0x5C5E, 1)] = (next>>8) & 255;
 
         next++;
 
         // NXTLIN :: https://skoolkid.github.io/rom/asm/5C55.html
-        memory[0x5C55] =  next & 255;
-        memory[0x5C56] = (next>>8) & 255;
+        memory[c48k_address(0x5C55, 1)] =  next & 255;
+        memory[c48k_address(0x5C56, 1)] = (next>>8) & 255;
 
 /*
         // Всякие непонятные параметры. Оставлю на всякий случай
