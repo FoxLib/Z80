@@ -1,0 +1,15 @@
+10 BORDER NOT PI: PAPER NOT PI: INK VAL "7": CLS
+20 LET k=SGN PI: LET sk=1.076: LET crc=200
+40 LET st=13: FOR y=173 TO 70 STEP -(st*2): FOR x=136 TO 255-(st*2) STEP st*2+2: FOR n=y-1 TO y-st STEP -1: PLOT x,n: DRAW st,0: PLOT x+st+1,n-st: DRAW st,0: NEXT n: NEXT x: NEXT y
+49 CIRCLE 191,120,55
+50 BEEP .01,20: FOR n=55 TO 1 STEP -1
+100 PRINT AT 0,0;n-1;" "
+200 FOR m=1 TO PI*2.315 STEP PI/(n*20)+0.0135
+210 LET x=191+n*SIN m: LET y=120+n*COS m
+220 IF POINT (x,y)=0 THEN GO TO 290
+250 LET x=64+(56-k)*SIN m: LET y=55+(56-k)*COS m
+260 LET r=k/14: FOR f=0 TO r/3: PLOT x-r/2+f,y-r/6-f: DRAW r-f*2,0: PLOT x-r/6-f,y+r/2-f: DRAW r/3+f*2,0: PLOT x-r/2,y+r/6-f: DRAW r,0: NEXT f
+290 NEXT m
+300 LET k=k*sk
+350 NEXT n
+998 BEEP .05,10: STOP

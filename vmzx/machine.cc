@@ -62,7 +62,8 @@ protected:
     int             width, height;
     unsigned char   fb[160*240];        // Следующий кадр
     unsigned char   pb[160*240];        // Предыдущий кадр
-    unsigned char   memory[65536];
+    unsigned char   memory[128*1024];   // 128k
+    unsigned char   rom[65536];         // 4 ROM
 
     // Таймер обновления экрана
     unsigned int    ms_time_diff;
@@ -87,6 +88,10 @@ protected:
     int   autostart;            // Автостарт при запуске
     int   frame_counter;        // Количество кадров от начала
     int   lookupfb[192];        // Для более быстрого определения адреса
+
+    // Периферия
+    int   ay_register, ay_data;
+    int   port_7ffd;
 
     // Обработка одного кадра
     // http://www.zxdesign.info/vidparam.shtml
@@ -293,9 +298,32 @@ protected:
      * Интерфейс
      */
 
+    // 0x0000-0x3fff ROM
+    // 0x4000-0x7fff BANK 2
+    // 0x8000-0xbfff BANK 5
+    // 0xc000-0xffff BANK 0..7
+
+    int get_bank(int address) {
+
+        int bank = 0;
+        switch (address & 0xc000) {
+
+            case 0x0000: bank = (port_7ffd & 0x30) ? 1 : 0; break;
+            case 0x4000: bank = 5; break;
+            case 0x8000: bank = 2; break;
+            case 0xc000: bank = (port_7ffd & 7); break;
+        }
+
+        return bank*16384 + (address & 0x3fff);
+    }
+
     // Чтение байта
     int mem_read(int address) {
-        return memory[address & 0xffff];
+
+        // Обращение к ROM 128k|48k (0 или 16384)
+        if (address < 0x4000) return rom[get_bank(address)];
+
+        return memory[get_bank(address)];
     }
 
     // Запись байта
@@ -303,14 +331,18 @@ protected:
 
         address &= 0xffff;
         if (address < 0x4000) return;
-        memory[address] = data;
+
+        memory[get_bank(address)] = data;
     }
 
     // Чтение из порта
-    int io_read (int port) {
+    int io_read(int port) {
 
         // Чтение клавиатуры
-        if ((port & 1) == 0) {
+        if (port == 0x7ffd) {
+            return port_7ffd;
+        }
+        else if ((port & 1) == 0) {
 
             int result = 0xff;
             for (int row = 0; row < 8; row++) {
@@ -331,8 +363,16 @@ protected:
     // Запись в порт
     void io_write(int port, int data) {
 
-        if ((port & 1) == 0) {
-            border_id = data & 7;
+        if (port == 0x7ffd) {
+            port_7ffd = data;
+        }
+        // AY address register
+        else if (port == 0xfffd) { ay_register = data; }
+        // AY address data
+        else if (port == 0xBFFD) { ay_data = data; }
+        else if (port == 0x1FFD) { /* nothing */ }
+        else if ((port & 1) == 0) {
+            border_id = (data & 7);
         }
     }
 
@@ -367,44 +407,34 @@ protected:
     // Обновить 8 бит
     void update_charline(int address) {
 
-        int byte = memory[ address ];
-
         address -= 0x4000;
 
         int Ya = (address & 0x0700) >> 8;
         int Yb = (address & 0x00E0) >> 5;
         int Yc = (address & 0x1800) >> 11;
+        int MemBase = 0x4000*(port_7ffd & 0x80 ? 7 : 5);
 
         int y = Ya + Yb*8 + Yc*64;
         int x = address & 0x1F;
 
-        int attr    = memory[ 0x5800 + x + ((address & 0x1800) >> 3) + (address & 0xE0) ];
+        int byte    = memory[ MemBase + address ];
+        int attr    = memory[ MemBase + 0x1800 + x + ((address & 0x1800) >> 3) + (address & 0xE0) ];
         int bgcolor = (attr & 0x38) >> 3;
         int frcolor = (attr & 0x07) + ((attr & 0x40) >> 3);
         int flash   = (attr & 0x80) ? 1 : 0;
+        int bright  = (attr & 0x40) ? 8 : 0;
 
         for (int j = 0; j < 8; j++) {
 
             int  pix = (byte & (0x80 >> j)) ? 1 : 0;
 
             // Если есть атрибут мерация, то учитывать это
-            uint clr = (flash ? (pix ^ flash_state) : pix) ? frcolor : bgcolor;
+            uint clr = bright | ((flash ? (pix ^ flash_state) : pix) ? frcolor : bgcolor);
 
             // Вывести пиксель
             pset(48 + 8*x + j, 48 + y, clr);
         }
     }
-
-    // Обновить все атрибуты
-    void update_attrbox(int address) {
-
-        address -= 0x5800;
-
-        int addr = 0x4000 + (address & 0x0FF) + ((address & 0x0300) << 3);
-        for (int _i = 0; _i < 8; _i++) {
-            update_charline(addr + (_i<<8));
-        }
-    };
 
     // Установка точки
     void pset(int x, int y, uint color) {
@@ -459,6 +489,9 @@ public:
         frame_counter   = 0;
         skip_dup_frame  = 0;
 
+        port_7ffd       = 0; // 0x0010; // Первично указывает на 48k ROM
+        border_id       = 0;
+
         // Настройки записи фреймов
         con_frame_start = 0;
         con_frame_end   = 150;
@@ -471,7 +504,8 @@ public:
         for (int y = 0; y < 192; y++)
             lookupfb[y] = 0x4000 + 32*((y & 0x38)>>3) + 256*(y&7) + 2048*(y>>6);
 
-        loadbin("basic48.rom", 0);
+        loadrom("48k.rom",  1);
+        loadrom("128k.rom", 0);
 
         // Все кнопки вначале отпущены
         for (int _i = 0; _i < 8; _i++) key_states[_i] = 0xff;
@@ -605,9 +639,8 @@ public:
     // Загрузка бинарника
     void loadbin(const char* filename, int address) {
 
-        // Загрузка базового ROM
         FILE* fp = fopen(filename, "rb");
-        if (fp == NULL) { printf("ROM %s not exists\n", filename); exit(1); }
+        if (fp == NULL) { printf("BINARY %s not exists\n", filename); exit(1); }
         fseek(fp, 0, SEEK_END);
         int fsize = ftell(fp);
         fseek(fp, 0, SEEK_SET);
@@ -615,8 +648,18 @@ public:
         fclose(fp);
     }
 
+    // Загрузка базового ROM
+    void loadrom(const char* filename, int bank) {
+
+        FILE* fp = fopen(filename, "rb");
+        if (fp == NULL) { printf("ROM %s not exists\n", filename); exit(1); }
+        fread(rom + 16384*bank, 1, 16384, fp);
+        fclose(fp);
+    }
+
     // Загрузка снапшота
     // https://worldofspectrum.org/faq/reference/z80format.htm
+    // https://worldofspectrum.org/faq/reference/128kreference.htm
     void loadz80(const char* filename) {
 
         unsigned char data[128*1024];
@@ -658,11 +701,6 @@ public:
         iff2    = data[28] ? 1 : 0;
         imode   = data[29] & 3;
 
-        if (pc == 0) {
-            printf("Non 48k valid snapshot\n");
-            exit(1);
-        }
-
         // старший бит R
         r |= ((data[12] & 1) << 7);
 
@@ -672,25 +710,55 @@ public:
         int rle    = (data[12] & 0x20) == 0x20 ? 1 : 0;
         int addr   = 0x4000;
         int cursor = 30;
+        int version = 1;
+
+        if (pc == 0) {
+
+            int _len = data[30] + 256*data[31];
+            int _hmode = data[34];
+
+            if (_len == 23) { cursor = 55; version = 2; }
+            else if (_len == 54) { cursor = 86; version = 3; }
+            else if (_len == 55) { cursor = 87; version = 3; }
+
+            pc = data[32] + 256*data[33];
+
+            int data_size = data[cursor] + data[cursor+1]*256;
+
+            printf("%x ", data_size);
+
+            printf("Non 48k valid snapshot (mode=%d, pc=%x, cursor=%x)\n", _hmode, pc, cursor);
+            exit(1);
+        }
+        // Обычная загрузка блока 48к (v1)
+        else {
+
+            loadz80block(cursor, addr, data, fsize, rle);
+        }
+    }
+
+    // Загрузка блока в память
+    void loadz80block(int& cursor, int &addr, unsigned char* data, int size, int rle) {
 
         if (rle) {
 
-            while (cursor < fsize) {
+            while (cursor < size) {
 
                 // EOF
-                if (data[cursor] == 0x00 && data[cursor+1] == 0xED && data[cursor+2] == 0xED && data[cursor+3] == 0x00) {
+                if (data[cursor]   == 0x00 &&
+                    data[cursor+1] == 0xED &&
+                    data[cursor+2] == 0xED &&
+                    data[cursor+3] == 0x00) {
                     break;
                 }
 
                 // Процедура декомпрессии
-                if (data[cursor] == 0xED && data[cursor+1] == 0xED) {
+                if (data[cursor]   == 0xED &&
+                    data[cursor+1] == 0xED) {
 
                     for (int t_ = 0; t_ < data[cursor+2]; t_++) {
 
-                        if (addr >= 0x4000 && addr <= 0xFFFF) {
-                            memory[addr] = data[cursor+3];
-                        }
-
+                        memory[addr] = data[cursor+3];
                         addr++;
                     }
 
@@ -698,8 +766,7 @@ public:
 
                 } else {
 
-                    if (addr >= 0x4000 && addr <= 0xFFFF)
-                        memory[addr] = data[cursor];
+                    memory[addr] = data[cursor];
 
                     addr++;
                     cursor++;
@@ -708,11 +775,9 @@ public:
 
         } else {
 
-            while (addr < 65536 && cursor < fsize) {
+            while (cursor < size) {
 
-                if (addr >= 0x4000 && addr <= 0xFFFF)
-                    mem_write(addr, data[cursor]);
-
+                mem_write(addr, data[cursor]);
                 addr++;
                 cursor++;
             }

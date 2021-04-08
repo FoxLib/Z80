@@ -8,7 +8,7 @@ all:
 nosdl:
 	g++ -DNO_SDL main.cc -o vmzx
 tap:
-	./vmzx basic.z80 program.tap
+	./vmzx 48k.z80 program.tap
 dizzy3:
 	./vmzx dizzy3.z80
 dizzy3bmp:

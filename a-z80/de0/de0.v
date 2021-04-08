@@ -185,10 +185,11 @@ always @(posedge clock_25) begin
 
         // Выбор банка и настроек возможно только при бите 5 равному 0
         if (A == 16'h7FFD && !membank[5]) membank <= D;
-
+        // AY-sound
+        else if (A == 18'hFFFD || A == 18'hBFFD) begin /* none yet */ end
         // Обновление бордюра
         // https://speccy.info/Порт_FE
-        if (A[7:0] == 8'hFE) begin
+        else if (A[0] == 1'b0) begin
 
             fb_border[2:0]  <= D[2:0];         // D3-управление записью на магнитофон
             speaker         <= D[4] ^ D[3];    // Выход динамика (и микрофона)
