@@ -157,8 +157,8 @@ protected:
                     // Пока что пишется порт бипера
                     int beep = !!(port_fe&0x10) ^ !!(port_fe&0x08);
 
-                    tmp[0] = beep ? 0xff : 0x00; // Left
-                    tmp[1] = beep ? 0xff : 0x00; // Right
+                    tmp[0] = beep ? 0xa0 : 0x60; // Left
+                    tmp[1] = beep ? 0xa0 : 0x60; // Right
 
                     // @todo выдать звук в буфер SDL
                     fwrite(tmp, 1, 2, wave_file);
