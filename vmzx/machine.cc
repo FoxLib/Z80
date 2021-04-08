@@ -93,7 +93,7 @@ protected:
     char  strbuf[256];
 
     // Периферия
-    int   ay_register, ay_data;
+    int   ay_register, ay_data, ay_regs[16];
     int   port_7ffd;
 
     // Обработка одного кадра
@@ -726,6 +726,10 @@ public:
             pc        = data[32] + 256*data[33];
             port_7ffd = data[35]; // 128k режим
 
+            // AY данные
+            ay_register = data[38];
+            for (int _a = 0; _a < 16; _a++) ay_regs[_a] = data[39+_a];
+
             if (_len == 23)      { cursor = 55; version = 2; }
             else if (_len == 54) { cursor = 86; version = 3; }
             else if (_len == 55) { cursor = 87; version = 3; }
@@ -799,7 +803,6 @@ public:
                     exit(1);
             }
         }
-
     }
 
     // Загрузка блока в память
