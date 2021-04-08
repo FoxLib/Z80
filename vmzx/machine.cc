@@ -193,9 +193,9 @@ protected:
             // -- io_write | io_read в области бордера
 
             // Вход в TRDOS : инструкция находится в адресе 3Dh
-            if ((pc & 0xff00) == 0x3d00 && !trdos_latch) { trdos_latch = 1; }
+            if      (!trdos_latch && (pc & 0xff00) == 0x3d00) { trdos_latch = 1; }
             // Выход из TRDOS
-            else if ((pc & 0xc000) && trdos_latch) { trdos_latch = 0; }
+            else if ( trdos_latch && (pc & 0xc000)) { trdos_latch = 0; }
 
             // Исполнение инструкции
             int t_states = run_instruction();
