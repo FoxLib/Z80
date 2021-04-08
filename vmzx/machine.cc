@@ -477,6 +477,11 @@ protected:
     void io_write(int port, int data) {
 
         if (port == 0x7ffd) {
+
+            // Не менять бит D5 если он 1
+            if ((port_7ffd & 0x20) && (data & 0x20) == 0)
+                data |= 0x20;
+
             port_7ffd = data;
         }
         // AY address register
@@ -606,7 +611,7 @@ protected:
         int Ya = (address & 0x0700) >> 8;
         int Yb = (address & 0x00E0) >> 5;
         int Yc = (address & 0x1800) >> 11;
-        int MemBase = 0x4000*(port_7ffd & 0x80 ? 7 : 5);
+        int MemBase = 0x4000*(port_7ffd & 0x08 ? 7 : 5);
 
         int y = Ya + Yb*8 + Yc*64;
         int x = address & 0x1F;
