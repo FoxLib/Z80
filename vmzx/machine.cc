@@ -146,14 +146,18 @@ protected:
     // Периферия
     int   ay_register, ay_data, ay_regs[16];
     int   port_7ffd;
-    unsigned int wav_cursor;
+
+    unsigned char audio_frame[44100];
+    unsigned int  wav_cursor;
 
     // Обработка одного кадра
     // http://www.zxdesign.info/vidparam.shtml
     void frame() {
 
         unsigned char tmp[2];
+
         int req_int = 1;
+        int audio_c = 0;
 
         // Sinclair ZX                Sinclair | Pentagon
         int max_tstates   = 69888; // 69888    | 71680 (или 70908)
@@ -177,7 +181,7 @@ protected:
             t_states_cycle += t_states;
 
             // Запись в wav звука (учитывая автостарт)
-            if (wave_file && autostart <= 1) {
+            if (wave_file && autostart <= 1 && con_pngout) {
 
                 t_states_wav += 44100 * t_states;
 
@@ -192,6 +196,10 @@ protected:
                     tmp[0] = beep ? 0xa0 : 0x60; // Left
                     tmp[1] = beep ? 0xa0 : 0x60; // Right
 
+                    // Запись во временный буфер
+                    audio_frame[audio_c++] = tmp[0];
+                    audio_frame[audio_c++] = tmp[1];
+
 #ifndef NO_SDL
                     // Запись аудиострима в буфер (с циклом)
                     AudioZXFrame = ab_cursor / 882;
@@ -199,11 +207,7 @@ protected:
                     ZXAudioBuffer[ab_cursor++] = tmp[1];
                     ab_cursor %= MAX_AUDIOSDL_BUFFER;
 #endif
-                    fwrite(tmp, 1, 2, wave_file);
-                    wav_cursor += 2;
-
                 }
-
             }
 
             // 1 CPU = 2 PPU
@@ -247,7 +251,7 @@ protected:
         }
 
         // При наличии опции автостарта не кодировать PNG
-        if (autostart <= 1 && con_pngout) encodebmp();
+        if (autostart <= 1 && con_pngout) encodebmp(audio_c);
 
         frame_counter++;
     }
@@ -1144,29 +1148,7 @@ public:
         fclose(fp);
     }
 
-    /*  // Кодировать в PNG-файл (это едленно)
-    void encodepng() {
-
-        unsigned       error;
-        unsigned char* png;
-        size_t         pngsize;
-        LodePNGState   state;
-
-        lodepng_state_init(&state);
-        error = lodepng_encode(&png, &pngsize, (const unsigned char*)fb, 320, 240, &state);
-
-        // Пока что так сохраняется (!)
-        if (!error) { fwrite(png, 1, pngsize, png_file); }
-
-        // if there's an error, display it
-        if (error) printf("error %u: %s\n", error, lodepng_error_text(error));
-
-        lodepng_state_cleanup(&state);
-        free(png);
-    }
-    */
-
-    void encodebmp() {
+    void encodebmp(int audio_c) {
 
         // Предыдущий кадр не отличается
         if (skip_dup_frame && diff_prev_frame == 0)
@@ -1197,6 +1179,13 @@ public:
         fwrite(&info, 1, sizeof(struct BITMAPINFOHEADER), png_file);
         fwrite(&colors, 1, 64, png_file);
         fwrite(fb, 1, 160*240, png_file);
+
+        // Запись некоторого количества фреймов в аудиобуфер
+        if (audio_c) {
+
+            fwrite(audio_frame, 1, audio_c, wave_file);
+            wav_cursor += audio_c;
+        }
 
         // Копировать предыдущий кадр
         if (skip_dup_frame) {
