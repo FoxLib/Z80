@@ -122,7 +122,8 @@ protected:
     unsigned char   fb[160*240];        // Следующий кадр
     unsigned char   pb[160*240];        // Предыдущий кадр
     unsigned char   memory[128*1024];   // 128k
-    unsigned char   rom[65536];         // 4 ROM
+    unsigned char   rom[65536];         // 0 128k; 1 48k
+    unsigned char   trdos[16384];
 
     // Таймер обновления экрана
     unsigned int    ms_time_diff;
@@ -156,6 +157,7 @@ protected:
     int   ay_tone_levels[16];
     int   ay_envelope_first, ay_noise_tick;
     int   port_7ffd;
+    int   trdos_latch;
 
     unsigned char audio_frame[44100];
     unsigned int  wav_cursor;
@@ -189,6 +191,11 @@ protected:
             // Детект того, где находится луч в данный момент
             // -- mem_write | mem_read из contended memory в области рисования
             // -- io_write | io_read в области бордера
+
+            // Вход в TRDOS : инструкция находится в адресе 3Dh
+            if ((pc & 0xff00) == 0x3d00 && !trdos_latch) { trdos_latch = 1; }
+            // Выход из TRDOS
+            else if ((pc & 0xc000) && trdos_latch) { trdos_latch = 0; }
 
             // Исполнение инструкции
             int t_states = run_instruction();
@@ -432,7 +439,9 @@ protected:
     int mem_read(int address) {
 
         // Обращение к ROM 128k|48k (0 или 16384)
-        if (address < 0x4000) return rom[get_bank(address)];
+        if (address < 0x4000) {
+            return trdos_latch ? trdos[address] : rom[get_bank(address)];
+        }
 
         return memory[get_bank(address)];
     }
@@ -688,12 +697,13 @@ public:
         frame_counter   = 0;
         skip_dup_frame  = 0;
 
-        port_7ffd       = 0x0010; // Первично указывает на 48k ROM
-        border_id       = 0;
-        port_fe         = 0;
-        ay_envelope_first = 1;
-        ay_noise_tick   = 0;
-        skip_first_frames = 0;
+        port_7ffd   = 0x0010; // Первично указывает на 48k ROM
+        border_id   = 0;
+        port_fe     = 0;
+        ay_envelope_first   = 1;
+        ay_noise_tick       = 0;
+        skip_first_frames   = 0;
+        trdos_latch         = 0;
 
         // Настройки записи фреймов
         con_frame_start = 0;
@@ -715,6 +725,7 @@ public:
 
         loadrom("48k.rom",  1);
         loadrom("128k.rom", 0);
+        loadrom("trdos.rom", 4);
 
         // Коррекция уровня
         for (int _f = 0; _f < 16; _f++) {
@@ -912,7 +923,12 @@ public:
 
         FILE* fp = fopen(filename, "rb");
         if (fp == NULL) { printf("ROM %s not exists\n", filename); exit(1); }
-        fread(rom + 16384*bank, 1, 16384, fp);
+
+        if (bank < 4) {
+            fread(rom + 16384*bank, 1, 16384, fp);
+        } else {
+            fread(trdos, 1, 16384, fp);
+        }
         fclose(fp);
     }
 
