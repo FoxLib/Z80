@@ -23,6 +23,35 @@
 
 #include "lodepng.cc"
 
+#ifndef NO_SDL
+#define MAX_AUDIOSDL_BUFFER 882*16
+
+// Циклический буфер
+int           AudioSDLFrame;
+int           AudioZXFrame;
+unsigned char ZXAudioBuffer[MAX_AUDIOSDL_BUFFER];
+
+// Аудиобуфер
+void sdl_audio_buffer(void* udata, unsigned char* stream, int len) {
+
+    // Выдача данных
+    for (int i = 0; i < 882; i++) {
+
+        int v = ZXAudioBuffer[882*AudioSDLFrame + i];
+        stream[i] = v;
+    }
+
+    // К следующему (если можно)
+    if (AudioSDLFrame != AudioZXFrame) {
+        AudioSDLFrame = (AudioSDLFrame + 1) % 16;
+    }
+    // Если догнал - то отстать на несколько кадров
+    else {
+        AudioSDLFrame = ((AudioZXFrame + 16) - 8) % 16;
+    }
+}
+#endif
+
 // Для выгрузки BMP https://ru.wikipedia.org/wiki/BMP
 
 // 14 байт
@@ -79,6 +108,7 @@ protected:
 #ifndef NO_SDL
     SDL_Event       event;
     SDL_Surface*    sdl_screen;
+    SDL_AudioSpec   audio_device;
 #endif
     int             sdl_enable;
     int             width, height;
@@ -96,6 +126,7 @@ protected:
     uint  border_id, port_fe;
     int   key_states[8];
     int   t_states_cycle, t_states_wav;
+    int   ab_cursor;
 
     // Консольная запись
     int   con_frame_start, con_frame_end, con_frame_fps;
@@ -152,6 +183,7 @@ protected:
 
                 // К следующему звуковому тику
                 if (t_states_wav > max_audio_cycle) {
+
                     t_states_wav %= max_audio_cycle;
 
                     // Пока что пишется порт бипера
@@ -160,9 +192,16 @@ protected:
                     tmp[0] = beep ? 0xa0 : 0x60; // Left
                     tmp[1] = beep ? 0xa0 : 0x60; // Right
 
-                    // @todo выдать звук в буфер SDL
+#ifndef NO_SDL
+                    // Запись аудиострима в буфер (с циклом)
+                    AudioZXFrame = ab_cursor / 882;
+                    ZXAudioBuffer[ab_cursor++] = tmp[0];
+                    ZXAudioBuffer[ab_cursor++] = tmp[1];
+                    ab_cursor %= MAX_AUDIOSDL_BUFFER;
+#endif
                     fwrite(tmp, 1, 2, wave_file);
                     wav_cursor += 2;
+
                 }
 
             }
@@ -548,9 +587,13 @@ public:
         con_pngout      = 0;
         wav_cursor      = 0;
         t_states_wav    = 0;
+        ab_cursor       = 0;
         png_file        = NULL;
         wave_file       = NULL;
-
+#ifndef NO_SDL
+        AudioSDLFrame   = 0; // SDL-фрейм позади основного
+        AudioZXFrame    = 8; // Генеральный фрейм
+#endif
         // Заполнение таблицы адресов
         for (int y = 0; y < 192; y++)
             lookupfb[y] = 0x4000 + 32*((y & 0x38)>>3) + 256*(y&7) + 2048*(y>>6);
@@ -665,6 +708,21 @@ public:
             sdl_screen = SDL_SetVideoMode(3*320, 3*240, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
             SDL_WM_SetCaption("ZX Spectrum Virtual Machine", 0);
             SDL_EnableKeyRepeat(500, 30);
+
+            // Количество семплов 882 x 50 = 44100
+            audio_device.freq     = 44100;
+            audio_device.format   = AUDIO_S8;
+            audio_device.channels = 2;
+            audio_device.samples  = 882;
+            audio_device.callback = sdl_audio_buffer;
+            audio_device.userdata = NULL;
+
+            if (SDL_OpenAudio(& audio_device, NULL) < 0) {
+                fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
+                exit(1);
+            }
+
+            SDL_PauseAudio(0);
 
             while (1) {
 
