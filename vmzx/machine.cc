@@ -9,6 +9,8 @@
  * <file>.(z80|tap) Загрузка снашпота или TAP бейсика
  * -M <секунды> длительность записи
  * -b [последовательность символов нажатий клавиш]
+ * -s Пропуск повторяющегося кадра
+ * -2 Включить режим 128к
  */
 
 #include <sys/timeb.h>
@@ -100,7 +102,7 @@ protected:
         int req_int = 1;
 
         // Sinclair ZX                Sinclair | Pentagon
-        int max_tstates   = 69888; // 69888    | 71680
+        int max_tstates   = 69888; // 69888    | 71680 (или 70908)
         int rows_paper    = 64;    // 64       | 80
         int cols_paper    = 200;   // 200      | 68
         int irq_row       = 296;   // 296      | 304
@@ -489,7 +491,7 @@ public:
         frame_counter   = 0;
         skip_dup_frame  = 0;
 
-        port_7ffd       = 0; // 0x0010; // Первично указывает на 48k ROM
+        port_7ffd       = 0x0010; // Первично указывает на 48k ROM
         border_id       = 0;
 
         // Настройки записи фреймов
@@ -566,6 +568,9 @@ public:
 
                         skip_dup_frame = 1;
                         break;
+
+                    // 128k режим
+                    case '2': port_7ffd = 0; break;
                 }
 
             }
@@ -707,42 +712,70 @@ public:
         // цвет бордюда
         io_write(0xFE, (data[12] & 0x0E) >> 1);
 
-        int rle    = (data[12] & 0x20) == 0x20 ? 1 : 0;
-        int addr   = 0x4000;
-        int cursor = 30;
+        int rle     = (data[12] & 0x20) == 0x20 ? 1 : 0;
+        int address = 0x4000;
+        int cursor  = 30;
         int version = 1;
 
         if (pc == 0) {
 
-            int _len = data[30] + 256*data[31];
+            int _len   = data[30] + 256*data[31];
             int _hmode = data[34];
 
-            if (_len == 23) { cursor = 55; version = 2; }
+            pc        = data[32] + 256*data[33];
+            port_7ffd = data[35]; // 128k режим
+
+            if (_len == 23)      { cursor = 55; version = 2; }
             else if (_len == 54) { cursor = 86; version = 3; }
             else if (_len == 55) { cursor = 87; version = 3; }
 
-            pc = data[32] + 256*data[33];
+            if (version > 2) {
+                printf("ZXCORE: Z80 file has %d version\n", version);
+                exit(1);
+            }
 
-            int data_size = data[cursor] + data[cursor+1]*256;
+            if (_hmode != 3 && _hmode != 4) {
+                printf("ZXCORE: Hardware mode is not 128k (mode=%d, pc=%x, cursor=%x)\n", _hmode, pc, cursor);
+                exit(1);
+            }
 
-            printf("%x ", data_size);
+            // Следующий блок
+            while (cursor < fsize) {
 
-            printf("Non 48k valid snapshot (mode=%d, pc=%x, cursor=%x)\n", _hmode, pc, cursor);
-            exit(1);
+                int data_size = data[cursor] + data[cursor+1]*256;
+
+                // Для 128k данные в [3..11]
+                int data_bank = data[cursor + 2] - 3;
+
+                cursor += 3;
+
+                // Не скомпрессированные данные
+                if (data_size == 0xffff) { rle = 0; data_size = 0x4000; } else rle = 1;
+
+                // Вычислить следующий адрес
+                address = (data_bank) * 0x4000;
+
+                // Явно указать окончание данных
+                int next = cursor + data_size;
+                if (next > fsize) next = fsize;
+
+                // Загрузка блока
+                loadz80block(0, cursor, address, data, cursor + data_size, rle);
+            }
         }
         // Обычная загрузка блока 48к (v1)
         else {
 
-            loadz80block(cursor, addr, data, fsize, rle);
+            loadz80block(1, cursor, address, data, fsize, rle);
         }
     }
 
     // Загрузка блока в память
-    void loadz80block(int& cursor, int &addr, unsigned char* data, int size, int rle) {
+    void loadz80block(int mode, int& cursor, int &addr, unsigned char* data, int top, int rle) {
 
         if (rle) {
 
-            while (cursor < size) {
+            while (cursor < top) {
 
                 // EOF
                 if (data[cursor]   == 0x00 &&
@@ -758,7 +791,7 @@ public:
 
                     for (int t_ = 0; t_ < data[cursor+2]; t_++) {
 
-                        memory[addr] = data[cursor+3];
+                        memory[c48k_address(addr, mode)] = data[cursor+3];
                         addr++;
                     }
 
@@ -766,7 +799,7 @@ public:
 
                 } else {
 
-                    memory[addr] = data[cursor];
+                    memory[c48k_address(addr, mode)] = data[cursor];
 
                     addr++;
                     cursor++;
@@ -775,13 +808,29 @@ public:
 
         } else {
 
-            while (cursor < size) {
+            while (cursor < top) {
 
-                mem_write(addr, data[cursor]);
+                memory[c48k_address(addr, mode)] = data[cursor];
                 addr++;
                 cursor++;
             }
         }
+    }
+
+    // Для нормальной загрузки 48k z80 снапшотов (mode=1)
+    int c48k_address(int address, int mode) {
+
+        if (mode) {
+
+            switch (address & 0xc000) {
+
+                case 0x4000: return (address&0x3fff) + 5*0x4000; break;
+                case 0x8000: return (address&0x3fff) + 2*0x4000; break;
+                case 0xc000: return (address&0x3fff) + 0*0x4000; break;
+            }
+        }
+
+        return address;
     }
 
     // https://sinclair.wiki.zxnet.co.uk/wiki/TAP_format
@@ -886,10 +935,10 @@ public:
         */
     }
 
-    // Сохранение снапшота в файл (не RLE)
+    // Сохранение снапшота в файл (не RLE) 48k
     void savez80(const char* filename) {
 
-        unsigned char data[64];
+        unsigned char data[48*1024];
 
         FILE* fp = fopen(filename, "wb+");
 
@@ -929,7 +978,12 @@ public:
         data[29] = imode;
 
         fwrite(data, 1, 30, fp);
-        fwrite(memory + 0x4000, 1, 0xc000, fp);
+
+        // Преобразовать память
+        for (int _a = 0x4000; _a < 0x10000; _a++)
+            data[_a - 0x4000] = memory[c48k_address(_a, 1)];
+
+        fwrite(data, 1, 0xc000, fp);
         fclose(fp);
     }
 
