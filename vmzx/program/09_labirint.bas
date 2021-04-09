@@ -1,0 +1,2 @@
+10 FOR i=0 TO 7: LET a=2^i: POKE 65368+i,a: POKE 65383-i,a: NEXT i
+20 PRINT CHR$(144+(RND<0.5)); : GO TO 20
