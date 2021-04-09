@@ -222,7 +222,7 @@ protected:
 
 public:
 
-    Z80Spectrum(int sdl);
+    Z80Spectrum();
     ~Z80Spectrum();
     void args(int argc, char** argv);
     void main();

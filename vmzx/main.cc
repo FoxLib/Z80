@@ -15,11 +15,15 @@
 #include "z80.cc"
 #include "machine.h"
 #include "machine.cc"
+#include "constructor.cc"
+#include "video.cc"
 #include "ay.cc"
+#include "io.cc"
+#include "snapshot.cc"
 
 int main(int argc, char* argv[]) {
 
-    Z80Spectrum speccy(1);
+    Z80Spectrum speccy;
 
     speccy.args(argc, argv);
     speccy.main();

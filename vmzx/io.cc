@@ -1,0 +1,95 @@
+
+/*
+ * Интерфейс
+ */
+
+// 0x0000-0x3fff ROM
+// 0x4000-0x7fff BANK 2
+// 0x8000-0xbfff BANK 5
+// 0xc000-0xffff BANK 0..7
+
+int Z80Spectrum::get_bank(int address) {
+
+    int bank = 0;
+    switch (address & 0xc000) {
+
+        case 0x0000: bank = (port_7ffd & 0x30) ? 1 : 0; break;
+        case 0x4000: bank = 5; break;
+        case 0x8000: bank = 2; break;
+        case 0xc000: bank = (port_7ffd & 7); break;
+    }
+
+    return bank*16384 + (address & 0x3fff);
+}
+
+// Чтение байта
+int Z80Spectrum::mem_read(int address) {
+
+    // Обращение к ROM 128k|48k (0 или 16384)
+    if (address < 0x4000) {
+        return trdos_latch ? trdos[address] : rom[get_bank(address)];
+    }
+
+    return memory[get_bank(address)];
+}
+
+// Запись байта
+void Z80Spectrum::mem_write(int address, int data) {
+
+    address &= 0xffff;
+    if (address < 0x4000) return;
+
+    memory[get_bank(address)] = data;
+}
+
+// Чтение из порта
+int Z80Spectrum::io_read(int port) {
+
+    // Чтение клавиатуры
+    if (port == 0x7ffd) {
+        return port_7ffd;
+    }
+    else if (port == 0xFFFD) { return ay_register; }
+    else if (port == 0xBFFD) { return ay_regs[ay_register%15]; }
+    else if ((port & 1) == 0) {
+
+        int result = 0xff;
+        for (int row = 0; row < 8; row++) {
+            if (!(port & (1 << (row + 8)))) {
+                result &= key_states[ row ];
+            }
+        }
+        return result;
+    }
+    // Kempston Joystick
+    else if ((port & 0x00e0) == 0x0000) {
+        return 0x00;
+    }
+
+    return 0xff;
+}
+
+// Запись в порт
+void Z80Spectrum::io_write(int port, int data) {
+
+    if (port == 0x7ffd) {
+
+        // Не менять бит D5 если он 1
+        if ((port_7ffd & 0x20) && (data & 0x20) == 0)
+            data |= 0x20;
+
+        port_7ffd = data;
+    }
+    // AY address register
+    else if (port == 0xFFFD) { ay_register = data; }
+    // AY address data
+    else if (port == 0xBFFD) { ay_write_data(data); }
+    else if (port == 0x1FFD) { /* nothing */ }
+    else if ((port & 1) == 0) {
+
+        border_id = (data & 7);
+        port_fe = data;
+    }
+}
+
+
