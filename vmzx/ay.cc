@@ -78,7 +78,7 @@ void Z80Spectrum::ay_tick() {
     for (int n = 0; n < 3; n++) {
 
         int g = ay_regs[8 + n];
-        levels[n] = ay_tone_levels[(g&16) ? ay_env_counter : (g & 15)];
+        levels[n] = ay_tone_levels[(g & 16 ? ay_env_counter : g) & 15];
     }
 
     // Обработчик "огибающей" (envelope)
@@ -196,8 +196,8 @@ void Z80Spectrum::ay_tick() {
 void Z80Spectrum::ay_amp_adder(int& left, int& right) {
 
     // Каналы A-слева; B-посередине; C-справа
-    left  += ay_amp[0] + ay_amp[1];
-    right += ay_amp[2] + ay_amp[1];
+    left  += (ay_amp[0] + ay_amp[1]) / 4;
+    right += (ay_amp[2] + ay_amp[1]) / 4;
 
     if (left  > 255) left  = 255; else if (left  < 0) left  = 0;
     if (right > 255) right = 255; else if (right < 0) right = 0;
