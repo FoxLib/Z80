@@ -49,6 +49,7 @@ void Z80Spectrum::frame() {
             // Каждые 32 тика срабатывает AY-чип
             if (((ay_state++) & 0x1f) == 0) ay_tick();
 
+            // Видимая рисуемая область
             int ppu_vx = ppu_x - 72,
                 ppu_lx = ppu_x - 48;
 

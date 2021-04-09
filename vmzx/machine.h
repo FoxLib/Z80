@@ -12,6 +12,12 @@
 
 #ifndef NO_SDL
 
+// Модифицикации огибающей
+#define AY_ENV_CONT     8
+#define AY_ENV_ATTACK   4
+#define AY_ENV_ALT      2
+#define AY_ENV_HOLD     1
+
 #include "SDL.h"
 #define MAX_AUDIOSDL_BUFFER 882*16
 
@@ -93,6 +99,7 @@ struct __attribute__((__packed__)) WAVEFMTHEADER {
     unsigned int    subchunk2Size;  // Количество байт в области данных.
 };
 
+
 class Z80Spectrum : public Z80 {
 protected:
 
@@ -158,7 +165,10 @@ protected:
     int     ay_register, ay_regs[16], ay_amp[3];
     int     ay_tone_tick[3], ay_tone_period[3], ay_tone_high[3];
     int     ay_tone_levels[16];
-    int     ay_envelope_first, ay_noise_tick;
+    int     ay_noise_toggle, ay_noise_period, ay_rng;
+    int     ay_noise_tick, ay_env_tick, ay_env_period;
+    int     ay_env_first, ay_env_rev, ay_env_counter;
+    int     ay_env_internal_tick, ay_env_cycles;
 
     unsigned char audio_frame[44100];
     unsigned int  wav_cursor;
@@ -184,9 +194,6 @@ protected:
 // Методы: Звук
 // -----------------------------------------------------------------
 
-    int     ay_get_tone(int channel);
-    int     ay_get_noise_period();
-    int     at_get_env_period();
     void    ay_write_data(int data);
     void    ay_tick();
     void    ay_amp_adder(int& left, int& right);
