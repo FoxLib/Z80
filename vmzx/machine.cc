@@ -16,7 +16,7 @@ void Z80Spectrum::main() {
 
         // Количество семплов 882 x 50 = 44100
         audio_device.freq     = 44100;
-        audio_device.format   = AUDIO_S8;
+        audio_device.format   = AUDIO_U8;
         audio_device.channels = 2;
         audio_device.samples  = 882;
         audio_device.callback = sdl_audio_buffer;
@@ -139,6 +139,10 @@ void Z80Spectrum::args(int argc, char** argv) {
         // Загрузка файла BAS с ленты
         else if (strstr(argv[u], ".tap") != NULL) {
             loadtap(argv[u]);
+        }
+        // Загрузка файла SNA
+        else if (strstr(argv[u], ".sna") != NULL) {
+            loadsna(argv[u]);
         }
     }
 }

@@ -208,6 +208,7 @@ protected:
     void    loadbin(const char* filename, int address);
     void    loadtap(const char* filename);
     void    loadrom(const char* filename, int bank);
+    void    loadsna(const char* filename);
     void    loadz80(const char* filename);
     void    loadz80block(int mode, int& cursor, int &addr, unsigned char* data, int top, int rle);
     void    savez80(const char* filename);

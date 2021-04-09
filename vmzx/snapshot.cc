@@ -384,3 +384,57 @@ void Z80Spectrum::savez80(const char* filename) {
     fclose(fp);
 }
 
+// Загрука файла снапшота
+// http://speccy.info/SNA
+void Z80Spectrum::loadsna(const char* filename) {
+
+    unsigned char data[192*1024];
+
+    FILE* fp = fopen(filename, "rb");
+    if (fp == NULL) { printf("Can't load file %s\n", filename); exit(1); }
+    fseek(fp, 0, SEEK_END);
+    int fsize = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    fread(data, 1, fsize, fp);
+    fclose(fp);
+
+    // Базовые параметры
+    i = data[0];
+    r = data[20];
+
+    l_prime = data[1]; l = data[9];
+    h_prime = data[2]; h = data[10];
+    e_prime = data[3]; e = data[11];
+    d_prime = data[4]; d = data[12];
+    c_prime = data[5]; c = data[13];
+    b_prime = data[6]; b = data[14];
+    set_flags_prime(data[7]);
+    a_prime = data[8];
+
+    iy = data[15] + data[16]*256;
+    ix = data[17] + data[18]*256;
+    sp = data[23] + data[24]*256;
+
+    iff1 = !!(data[19] & 1);
+    iff2 = !!(data[19] & 2);
+
+    set_flags_register(data[21]);
+    a = data[22];
+
+    imode     = data[25] & 3;
+    border_id = data[26] & 7;
+
+    // 48k
+    if (fsize == 49179) {
+
+        for (int w = 0; w < 49152; w++)
+            memory[ c48k_address(0x4000 + w, 1) ] = data[27 + w];
+
+        pc = pop_word();
+    }
+    // 128k
+    else if (fsize == 131103 || fsize == 147487) {
+
+        // ..
+    }
+}
