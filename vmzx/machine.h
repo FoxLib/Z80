@@ -12,12 +12,6 @@
 
 #ifndef NO_SDL
 
-// Модифицикации огибающей
-#define AY_ENV_CONT     8
-#define AY_ENV_ATTACK   4
-#define AY_ENV_ALT      2
-#define AY_ENV_HOLD     1
-
 #include "SDL.h"
 #define MAX_AUDIOSDL_BUFFER 882*16
 
