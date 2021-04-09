@@ -6,7 +6,7 @@ all:
 	g++ `sdl-config --cflags --libs` main.cc -lSDL -o vmzx
 	#./vmzx
 	#./vmzx d1.z80
-	./vmzx snapshots/demodex3.sna
+	./vmzx snapshots/marsmare.sna
 nosdl:
 	g++ -DNO_SDL main.cc -o vmzx
 tap:

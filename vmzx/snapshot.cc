@@ -433,10 +433,34 @@ void Z80Spectrum::loadsna(const char* filename) {
         pc = pop_word();
     }
     // 128k
-    else if (fsize == 131103 || fsize == 147487) {
+    else if (fsize == 131103) {
 
-        printf("Snapshot 128k currently not supported\n");
-        exit(1);
+        pc = data[49179] + 256*data[49180];
+
+        port_7ffd   =   data[49181];
+        trdos_latch = !!data[49182];
+
+        int sel_bank = port_7ffd & 7;
+
+        for (int w = 0; w < 16384; w++) {
+
+            memory[5*0x4000 + w] = data[27 + w];
+            memory[2*0x4000 + w] = data[16411 + w];
+            memory[sel_bank*0x4000 + w] = data[32795 + w];
+        }
+
+        int _start = 49183;
+        for (int n = 0; n < 8; n++) {
+
+            if (n == 2 || n == 5 || n == sel_bank)
+                continue;
+
+            for (int w = 0; w < 16384; w++)
+                memory[n*0x4000 + w] = data[_start++];
+        }
+    }
+    else if (fsize == 147487) {
+        printf("Snapshot 128k+ currently not supported\n");
     }
     else {
         printf("Error snapshot size %d\n", fsize);
