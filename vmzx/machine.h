@@ -224,7 +224,8 @@ public:
 
     Z80Spectrum();
     ~Z80Spectrum();
-    void args(int argc, char** argv);
-    void main();
+
+    void    args(int argc, char** argv);
+    void    main();
 };
 
