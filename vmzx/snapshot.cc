@@ -435,6 +435,11 @@ void Z80Spectrum::loadsna(const char* filename) {
     // 128k
     else if (fsize == 131103 || fsize == 147487) {
 
-        // ..
+        printf("Snapshot 128k currently not supported\n");
+        exit(1);
+    }
+    else {
+        printf("Error snapshot size %d\n", fsize);
+        exit(1);
     }
 }
