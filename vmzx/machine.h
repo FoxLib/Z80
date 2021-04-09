@@ -153,7 +153,7 @@ protected:
 // -----------------------------------------------------------------
 
     int     ab_cursor;
-    int     t_states_wav;
+    int     t_states_wav, max_audio_cycle;
     FILE*   wave_file;
     int     ay_register, ay_regs[16], ay_amp[3];
     int     ay_tone_tick[3], ay_tone_period[3], ay_tone_high[3];
@@ -190,6 +190,7 @@ protected:
     void    ay_write_data(int data);
     void    ay_tick();
     void    ay_amp_adder(int& left, int& right);
+    void    ay_sound_tick(int t_states, int& audio_c);
 
 // -----------------------------------------------------------------
 // Методы: Работа с видеобуфером

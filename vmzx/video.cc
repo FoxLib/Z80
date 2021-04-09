@@ -6,8 +6,6 @@
 // Обработка одного кадра http://www.zxdesign.info/vidparam.shtml
 void Z80Spectrum::frame() {
 
-    unsigned char tmp[2];
-
     int req_int = 1;
     int audio_c = 0;
 
@@ -16,8 +14,9 @@ void Z80Spectrum::frame() {
     int rows_paper    = 64;    // 64       | 80
     int cols_paper    = 200;   // 200      | 68
     int irq_row       = 296;   // 296      | 304
+    int ppu_x = 0, ppu_y = 0, ay_state = 0;
 
-    int ppu_x = 0, ppu_y = 0, max_audio_cycle = max_tstates*50, ay_state = 0;
+    max_audio_cycle = max_tstates*50;
 
     // Автоматическое нажимание на клавиши
     autostart_macro();
@@ -42,39 +41,7 @@ void Z80Spectrum::frame() {
         t_states_cycle += t_states;
 
         // Запись в wav звука (учитывая автостарт)
-        if (autostart <= 1) {
-
-            t_states_wav += 44100 * t_states;
-
-            // К следующему звуковому тику
-            if (t_states_wav > max_audio_cycle) {
-
-                t_states_wav %= max_audio_cycle;
-
-                // Пока что пишется порт бипера
-                int beep = !!(port_fe&0x10) ^ !!(port_fe&0x08);
-
-                int left  = beep ? 0xff : 0x80;
-                int right = beep ? 0xff : 0x80;
-
-                // Использовать AY
-                ay_amp_adder(left, right);
-
-                tmp[0] = left;
-                tmp[1] = right;
-
-                // Запись во временный буфер
-                audio_frame[audio_c++] = tmp[0];
-                audio_frame[audio_c++] = tmp[1];
-#ifndef NO_SDL
-                // Запись аудиострима в буфер (с циклом)
-                AudioZXFrame = ab_cursor / 882;
-                ZXAudioBuffer[ab_cursor++] = tmp[0];
-                ZXAudioBuffer[ab_cursor++] = tmp[1];
-                ab_cursor %= MAX_AUDIOSDL_BUFFER;
-#endif
-            }
-        }
+        if (autostart <= 1) ay_sound_tick(t_states, audio_c);
 
         // 1 CPU = 2 PPU
         for (int w = 0; w < t_states; w++) {

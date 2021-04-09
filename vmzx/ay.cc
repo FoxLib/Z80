@@ -70,9 +70,42 @@ void Z80Spectrum::ay_tick() {
 // Добавить уровень
 void Z80Spectrum::ay_amp_adder(int& left, int& right) {
 
+    // Каналы A-слева; B-посередине; C-справа
     left  += ay_amp[0] + ay_amp[1];
     right += ay_amp[2] + ay_amp[1];
 
     if (left  > 255) left  = 255; else if (left  < 0) left  = 0;
     if (right > 255) right = 255; else if (right < 0) right = 0;
+}
+
+// Вызывается каждую 1/44100 секунду
+void Z80Spectrum::ay_sound_tick(int t_states, int& audio_c) {
+
+    // Гарантированное 44100 за max_audio_cycle (1 секунда)
+    t_states_wav += 44100 * t_states;
+
+    // К следующему звуковому тику
+    if (t_states_wav > max_audio_cycle) {
+        t_states_wav %= max_audio_cycle;
+
+        // Порт бипера берется за основу тона
+        int beep  = !!(port_fe & 0x10) ^ !!(port_fe & 0x08);
+        int left  = beep ? 0xff : 0x80;
+        int right = beep ? 0xff : 0x80;
+
+        // Использовать AY
+        ay_amp_adder(left, right);
+
+        // Запись во временный буфер
+        audio_frame[audio_c++] = left;
+        audio_frame[audio_c++] = right;
+
+#ifndef NO_SDL
+        // Запись аудиострима в буфер (с циклом)
+        AudioZXFrame = ab_cursor / 882;
+        ZXAudioBuffer[ab_cursor++] = left;
+        ZXAudioBuffer[ab_cursor++] = right;
+        ab_cursor %= MAX_AUDIOSDL_BUFFER;
+#endif
+    }
 }

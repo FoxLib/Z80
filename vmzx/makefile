@@ -4,7 +4,6 @@ SCALE=-vf "scale=w=1280:h=960,pad=width=1920:height=1080:x=320:y=60:color=black"
 
 all:
 	g++ `sdl-config --cflags --libs` main.cc -lSDL -o vmzx
-	#./vmzx abc.z80 -wave out.wav -o test.bmp
 	#./vmzx abc.z80
 	./vmzx
 nosdl:
