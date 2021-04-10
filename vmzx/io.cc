@@ -107,8 +107,12 @@ void Z80Spectrum::io_write(int port, int data) {
 // Проверяется наличие входа и выхода из TRDOS
 void Z80Spectrum::trdos_handler() {
 
-    // Вход в TRDOS : инструкция находится в адресе 3Dh
-    if      (!trdos_latch && (pc & 0xff00) == 0x3d00) { trdos_latch = 1; }
-    // Выход из TRDOS
-    else if ( trdos_latch && (pc & 0xc000))           { trdos_latch = 0; }
+    // Only 48k ROM allowed
+    if (port_7ffd & 0x10) {
+
+        // Вход в TRDOS : инструкция находится в адресе 3Dh
+        if      (!trdos_latch && (pc & 0xff00) == 0x3d00) { trdos_latch = 1; }
+        // Выход из TRDOS
+        else if ( trdos_latch && (pc & 0xc000))           { trdos_latch = 0; }
+    }
 }

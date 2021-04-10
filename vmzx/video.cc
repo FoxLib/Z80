@@ -40,7 +40,6 @@ void Z80Spectrum::frame() {
 
         // Исполнение инструкции
         int t_states = run_instruction();
-
         t_states_cycle += t_states;
 
         // 1 CPU = 2 PPU
