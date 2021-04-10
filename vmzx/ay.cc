@@ -74,10 +74,12 @@ void Z80Spectrum::ay_tick() {
     // Огибающая
     int env_level = ay_tone_levels[ ay_env_counter ];
 
-    // Если для тона разрешена огибающая
+    // Генерация начальных значений громкости
     for (int n = 0; n < 3; n++) {
 
         int g = ay_regs[8 + n];
+
+        // Если 4-м бите громкости тона стоит единица, то взять громкость огибающей
         levels[n] = ay_tone_levels[(g & 16 ? ay_env_counter : g) & 15];
     }
 
@@ -88,11 +90,11 @@ void Z80Spectrum::ay_tick() {
         ay_env_tick -= ay_env_period;
 
         // Выполнить первые 1/16 периодический INC/DEC если нужно
-        // 1. Это первая запись в ENV Reg13
-        // 2. Или это Cont или Hold тип
+        // 1. Это первая запись в регистр r13
+        // 2. Или это Cont=1 и Hold=0
         if (ay_env_first || ((envshape & AY_ENV_CONT) && !(envshape & AY_ENV_HOLD))) {
 
-            // Направление движения - вверх или вниз
+            // Направление движения: вниз (ATTACK=1) или вверх
             if (ay_env_rev)
                  ay_env_counter -= (envshape & AY_ENV_ATTACK) ? 1 : -1;
             else ay_env_counter += (envshape & AY_ENV_ATTACK) ? 1 : -1;
@@ -120,7 +122,7 @@ void Z80Spectrum::ay_tick() {
 
                     // Пилообразная фигура
                     if (ay_env_first && (envshape & AY_ENV_ALT))
-                        ay_env_counter = (ay_env_counter ? 0 : 15 );
+                        ay_env_counter = (ay_env_counter ? 0 : 15);
                 }
                 // Опция HOLD=0
                 else {
@@ -135,11 +137,11 @@ void Z80Spectrum::ay_tick() {
         }
 
         // Выход, если период нулевой
-        if (!ay_env_period )
+        if (!ay_env_period)
             break;
     }
 
-    // К периоду тона +2
+    // Просмотреть все тоны
     for (int _tone = 0; _tone < 3; _tone++) {
 
         int level = levels[_tone];

@@ -27,21 +27,20 @@ void Z80Spectrum::frame() {
         // Вызвать прерывание именно здесь, перед инструкцией
         if (ppu_y == irq_row && req_int) { interrupt(0, 0xff); req_int = 0; }
 
-        // Детект того, где находится луч в данный момент
-        // -- mem_write | mem_read из contended memory в области рисования
-        // -- io_write | io_read в области бордера
+        // Местонахождение луча
+        if (beam_drawing  = (ppu_y >= 16) && (ppu_x >= 48)) {
+            beam_in_paper = (ppu_y >= rows_paper && ppu_y < 256 && ppu_x >= 72 && ppu_x < cols_paper);
+            contended_mem = (port_7ffd & 0x30) ? 1 : 0;
+        } else {
+            contended_mem = 0;
+        }
 
-        // Вход в TRDOS : инструкция находится в адресе 3Dh
-        if      (!trdos_latch && (pc & 0xff00) == 0x3d00) { trdos_latch = 1; }
-        // Выход из TRDOS
-        else if ( trdos_latch && (pc & 0xc000)) { trdos_latch = 0; }
+        // Вход в TRDOS
+        trdos_handler();
 
         // Исполнение инструкции
         int t_states = run_instruction();
         t_states_cycle += t_states;
-
-        // Запись в wav звука (учитывая автостарт)
-        if (autostart <= 1) ay_sound_tick(t_states, audio_c);
 
         // 1 CPU = 2 PPU
         for (int w = 0; w < t_states; w++) {
@@ -57,13 +56,13 @@ void Z80Spectrum::frame() {
             if (ppu_y >= 16 && ppu_x >= 48) {
 
                 // Рисуется бордер [2x точки на 1 такт]
-                if (ppu_x < 72 || ppu_x >= cols_paper || ppu_y < rows_paper || ppu_y >= 256) {
+                if (ppu_y < rows_paper || ppu_y >= 256 || ppu_x < 72 || ppu_x >= cols_paper) {
 
                     pset(2*ppu_lx,   ppu_y-16, border_id);
                     pset(2*ppu_lx+1, ppu_y-16, border_id);
                 }
                 // Рисование знакоместа
-                else if (ppu_x >= 72 && ppu_y >= 64 && ppu_y < 256 && (ppu_vx & 3) == 0) {
+                else if (ppu_x >= 72 && ppu_y >= rows_paper && ppu_y < 256 && (ppu_vx & 3) == 0) {
                     update_charline(lookupfb[ppu_y - 64] + (ppu_vx >> 2));
                 }
             }
@@ -74,6 +73,9 @@ void Z80Spectrum::frame() {
                 ppu_y++;
             }
         }
+
+        // Запись в wav звука (учитывая автостарт)
+        ay_sound_tick(t_states, audio_c);
     }
 
     t_states_cycle %= max_tstates;

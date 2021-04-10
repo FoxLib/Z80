@@ -129,6 +129,7 @@ protected:
     struct timeb    ms_clock;
     unsigned int    ms_clock_old;
 
+    int     beam_drawing, beam_in_paper;
     int     flash_state, flash_counter;
     uint    border_id, port_fe;
     int     diff_prev_frame;
@@ -140,6 +141,7 @@ protected:
     int     key_states[8];
     int     con_frame_start, con_frame_end, con_frame_fps, skip_first_frames;
     int     auto_keyb, skip_dup_frame;
+    int     contended_mem;
     int     con_pngout;
     FILE*   png_file;
     int     frame_id;
@@ -183,6 +185,8 @@ protected:
     void    mem_write   (int address, int data);
     int     io_read     (int port);
     void    io_write    (int port, int data);
+
+    void    trdos_handler();
 
 // -----------------------------------------------------------------
 // Методы: Звук

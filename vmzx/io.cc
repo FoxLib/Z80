@@ -30,6 +30,9 @@ int Z80Spectrum::mem_read(int address) {
         return trdos_latch ? trdos[address] : rom[get_bank(address)];
     }
 
+    // Обнаружено чтение из конкурентной памяти
+    if (contended_mem && beam_drawing && beam_in_paper && address < 0x8000) { cycle_counter++; }
+
     return memory[get_bank(address)];
 }
 
@@ -38,6 +41,9 @@ void Z80Spectrum::mem_write(int address, int data) {
 
     address &= 0xffff;
     if (address < 0x4000) return;
+
+    // Обнаружена запись в конкурентную память
+    if (contended_mem && beam_drawing && beam_in_paper && address < 0x8000) { cycle_counter++; }
 
     memory[get_bank(address)] = data;
 }
@@ -52,6 +58,9 @@ int Z80Spectrum::io_read(int port) {
     else if (port == 0xFFFD) { return ay_register; }
     else if (port == 0xBFFD) { return ay_regs[ay_register%15]; }
     else if ((port & 1) == 0) {
+
+        // Чтение из порта во время движения луча по бордеру
+        if (contended_mem && beam_drawing && !beam_in_paper) { cycle_counter++; }
 
         int result = 0xff;
         for (int row = 0; row < 8; row++) {
@@ -84,12 +93,22 @@ void Z80Spectrum::io_write(int port, int data) {
     else if (port == 0xFFFD) { ay_register = data; }
     // AY address data
     else if (port == 0xBFFD) { ay_write_data(data); }
-    else if (port == 0x1FFD) { /* nothing */ }
+    else if (port == 0x1FFD) { /* ничего пока что */ }
     else if ((port & 1) == 0) {
+
+        // Чтение в порт во время движения луча по бордеру
+        if (contended_mem && beam_drawing && !beam_in_paper) { cycle_counter++; }
 
         border_id = (data & 7);
         port_fe = data;
     }
 }
 
+// Проверяется наличие входа и выхода из TRDOS
+void Z80Spectrum::trdos_handler() {
 
+    // Вход в TRDOS : инструкция находится в адресе 3Dh
+    if      (!trdos_latch && (pc & 0xff00) == 0x3d00) { trdos_latch = 1; }
+    // Выход из TRDOS
+    else if ( trdos_latch && (pc & 0xc000))           { trdos_latch = 0; }
+}
