@@ -24,10 +24,10 @@ unsigned char ZXAudioBuffer[MAX_AUDIOSDL_BUFFER];
 void sdl_audio_buffer(void* udata, unsigned char* stream, int len) {
 
     // Выдача данных
-    for (int i = 0; i < 882; i++) {
+    for (int w = 0; w < 882; w++) {
 
-        int v = ZXAudioBuffer[882*AudioSDLFrame + i];
-        stream[i] = v;
+        int v = ZXAudioBuffer[882*AudioSDLFrame + w];
+        stream[w] = v;
     }
 
     // К следующему (если можно)
@@ -155,6 +155,7 @@ protected:
 // -----------------------------------------------------------------
 
     int     ab_cursor;
+    int     sdl_disable_sound;
     int     t_states_wav, max_audio_cycle;
     FILE*   wave_file;
     int     ay_register, ay_last_data, ay_regs[16], ay_amp[3];

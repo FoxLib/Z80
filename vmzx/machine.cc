@@ -15,27 +15,33 @@ void Z80Spectrum::main() {
         SDL_EnableKeyRepeat(500, 30);
 
         // Количество семплов 882 x 50 = 44100
-        audio_device.freq     = 44100;
-        audio_device.format   = AUDIO_U8;
-        audio_device.channels = 2;
-        audio_device.samples  = 882;
-        audio_device.callback = sdl_audio_buffer;
-        audio_device.userdata = NULL;
+        if (sdl_disable_sound == 0) {
 
-        if (SDL_OpenAudio(& audio_device, NULL) < 0) {
-            fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
-            exit(1);
-        }
+			audio_device.freq     = 44100;
+			audio_device.format   = AUDIO_U8;
+			audio_device.channels = 2;
+			audio_device.samples  = 882;
+			audio_device.callback = sdl_audio_buffer;
+			audio_device.userdata = NULL;
 
-        SDL_PauseAudio(0);
+			if (SDL_OpenAudio(& audio_device, NULL) < 0) {
+				fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
+				exit(1);
+			}
+
+			for (int w = 0; w < 16*882; w++) ZXAudioBuffer[w] = 0;
+
+			SDL_PauseAudio(0);
+		}
 
         while (1) {
 
             // Регистрация событий
             while (SDL_PollEvent(& event)) {
+
                 switch (event.type) {
 
-                    case SDL_QUIT: return;
+                    case SDL_QUIT:  return;
                     case SDL_KEYDOWN: keyb(1, & event.key); break;
                     case SDL_KEYUP:   keyb(0, & event.key); break;
                 }
@@ -51,11 +57,11 @@ void Z80Spectrum::main() {
             if (time_diff >= 20) {
 
                 frame();
-
                 ms_clock_old = time_curr;
                 SDL_Flip(sdl_screen);
             }
 
+			SDL_PumpEvents();
             SDL_Delay(1);
         }
     }
@@ -83,6 +89,7 @@ void Z80Spectrum::args(int argc, char** argv) {
 
                 // Включение последовательности автостарта (RUN ENT)
                 case 'a': autostart = 1; break;
+                case 'x': sdl_disable_sound = 1; break;
 
                 // Файл для записи видео
                 case 'o':

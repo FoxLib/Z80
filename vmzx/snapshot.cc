@@ -18,6 +18,8 @@ int Z80Spectrum::z80file_bankmap(int mode, int bank) {
                 exit(1);
         }
     }
+    
+    return 0;
 }
 
 // Для нормальной загрузки 48k z80 снапшотов (mode=1)

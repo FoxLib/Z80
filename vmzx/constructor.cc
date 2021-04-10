@@ -21,6 +21,7 @@ Z80Spectrum::Z80Spectrum() {
     frame_counter       = 0;
     skip_dup_frame      = 0;
     max_audio_cycle     = 0;
+    sdl_disable_sound	= 0;
 
     port_7ffd           = 0x0010; // Первично указывает на 48k ROM
     border_id           = 0;
