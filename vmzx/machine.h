@@ -142,8 +142,7 @@ protected:
     int     con_frame_start, con_frame_end, con_frame_fps, skip_first_frames;
     int     auto_keyb, skip_dup_frame;
     int     contended_mem;
-    int     con_pngout;
-    FILE*   png_file;
+    FILE*   record_file;
     int     frame_id;
     int     first_sta;            // Досрочно обновить экран
     int     autostart;            // Автостарт при запуске

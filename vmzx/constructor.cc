@@ -43,8 +43,7 @@ Z80Spectrum::Z80Spectrum() {
     con_frame_start     = 0;
     con_frame_end       = 150;
     con_frame_fps       = 30;
-    con_pngout          = 0;
-    png_file            = NULL;
+    record_file         = NULL;
     wave_file           = NULL;
 
 #ifndef NO_SDL
@@ -86,7 +85,9 @@ Z80Spectrum::~Z80Spectrum() {
 #endif
 
     // Финализация видеопотока
-    if (png_file) fclose(png_file);
+    if (record_file) {
+        fclose(record_file);
+    }
 
     // Финализация WAV
     if (wave_file) {

@@ -4,20 +4,20 @@ SCALE=-vf "scale=w=1280:h=960,pad=width=1920:height=1080:x=320:y=60:color=black"
 
 all:
 	g++ `sdl-config --cflags --libs` main.cc -lSDL -o vmzx
-	./vmzx
+	#./vmzx
 	#./vmzx d1.z80
-	#./vmzx snapshots/marsmare.sna
+	./vmzx snapshots/marsmare.sna -w out.wav
 nosdl:
 	g++ -DNO_SDL main.cc -o vmzx
 tap:
 	./vmzx 48k.z80 program.tap
 dizzy3:
-	./vmzx dizzy3.z80
+	./vmzx snapshots/dizzy3_128.z80
 dizzy3bmp:
-	./vmzx dizzy3.z80 -o record.bmp
+	./vmzx snapshots/dizzy3_128.z80 -o record.bmp -w record.wav
 	make bmp2mp4
 bmp2mp4:
-	$(FF1) record.bmp $(FF2) record.mp4
+	$(FF1) record.bmp -i record.wav $(FF2) record.mp4
 mp4:
 	./vmzx dizzy3.z80 -o - | $(FF1) - $(SCALE) $(FF2) record.mp4
 # Скипать повторные кадры

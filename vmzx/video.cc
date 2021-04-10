@@ -90,7 +90,7 @@ void Z80Spectrum::frame() {
     }
 
     // При наличии опции автостарта не кодировать PNG
-    if (autostart <= 1 && con_pngout) encodebmp(audio_c);
+    if (autostart <= 1) encodebmp(audio_c);
 
     frame_counter++;
 }
@@ -217,10 +217,13 @@ void Z80Spectrum::encodebmp(int audio_c) {
         0xff, 0xff, 0xff, 0x00  // 15
     };
 
-    fwrite(&head, 1, sizeof(struct BITMAPFILEHEADER), png_file);
-    fwrite(&info, 1, sizeof(struct BITMAPINFOHEADER), png_file);
-    fwrite(&colors, 1, 64, png_file);
-    fwrite(fb, 1, 160*240, png_file);
+    if (record_file) {
+
+        fwrite(&head, 1, sizeof(struct BITMAPFILEHEADER), record_file);
+        fwrite(&info, 1, sizeof(struct BITMAPINFOHEADER), record_file);
+        fwrite(&colors, 1, 64, record_file);
+        fwrite(fb, 1, 160*240, record_file);
+    }
 
     // Запись некоторого количества фреймов в аудиобуфер
     if (audio_c && wave_file) {

@@ -87,11 +87,10 @@ void Z80Spectrum::args(int argc, char** argv) {
                 // Файл для записи видео
                 case 'o':
 
-                    con_pngout = 1;
                     if (strcmp(argv[u+1],"-") == 0) {
-                        png_file = stdout;
+                        record_file = stdout;
                     } else {
-                        png_file = fopen(argv[u+1], "w+");
+                        record_file = fopen(argv[u+1], "w+");
                     }
                     u++;
                     break;
