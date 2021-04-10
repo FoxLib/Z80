@@ -264,8 +264,8 @@ void Z80Spectrum::keyb(int press, SDL_KeyboardEvent* eventkey) {
 
         // Отладка
         case SDLK_F1: if (press) { loadbin("zexall", 0x8000); printf("ZXALL LOADED\n"); } break;
-        case SDLK_F2: savez80("autosave.z80"); break;
-        case SDLK_F3: loadz80("autosave.z80"); break;
+        case SDLK_F2: if (press) savesna("autosave.sna"); break;
+        case SDLK_F3: if (press) loadsna("autosave.sna"); break;
     }
 }
 #endif

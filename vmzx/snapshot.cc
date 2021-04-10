@@ -243,7 +243,8 @@ void Z80Spectrum::loadtap(const char* filename) {
     fread(tapfile, 1, fsize, fp);
     fclose(fp);
 
-    if (tapfile[0x17] != 0xff) {
+    // Первым в TAP должен идти бейсик
+    if (tapfile[0x17] != 0xFF) {
         printf("No BASIC program\n"); exit(1);
     }
 
@@ -257,79 +258,36 @@ void Z80Spectrum::loadtap(const char* filename) {
     int next = endp;
 
     // END OF PROGRAM
-    memory[c48k_address(endp, 1)]  = 0x80;
-    memory[c48k_address(endp+1, 1)] = 0x0D; // Линия 1 (next+0)
-    memory[c48k_address(endp+2, 1)] = 0x80; //         (next+1)
-    memory[c48k_address(endp+3, 1)] = 0x22; //         (next+2)
-    memory[c48k_address(endp+4, 1)] = 0x0D; // Линия 2 (next+3)
-    memory[c48k_address(endp+5, 1)] = 0x80; //         (next+4)
-
-    // VARS
-    memory[c48k_address(0x5C4B, 1)] =  next & 255;
-    memory[c48k_address(0x5C4C, 1)] = (next>>8) & 255;
-
+    put48mem_word(endp,   0x0D80);  // Линия 1
+    put48mem_word(endp+2, 0x2280);
+    put48mem_word(endp+4, 0x800D);  // Линия 2
+    put48mem_word(0x5C4B, next);    // VARS :: https://skoolkid.github.io/rom/asm/5C4B.html
     next++;
 
-    // E-LINE :: https://skoolkid.github.io/rom/asm/5C59.html
-    memory[c48k_address(0x5C59, 1)] =  next & 255;
-    memory[c48k_address(0x5C5A, 1)] = (next>>8) & 255;
+    put48mem_word(0x5C59, next);    // E-LINE :: https://skoolkid.github.io/rom/asm/5C59.html
+    put48mem_word(0x5C5B, next);    // K-CUR :: https://skoolkid.github.io/rom/asm/5C5B.html
 
-    // K-CUR - Address of cursor :: https://skoolkid.github.io/rom/asm/5C5B.html
-    memory[c48k_address(0x5C5B, 1)] =  next & 255;
-    memory[c48k_address(0x5C5C, 1)] = (next>>8) & 255;
-
-    next += 2;
-
-    // https://skoolkid.github.io/rom/asm/5C61.html
-    memory[c48k_address(0x5C61, 1)] =  next & 255;
-    memory[c48k_address(0x5C62, 1)] = (next>>8) & 255;
-
-    // https://skoolkid.github.io/rom/asm/5C63.html
-    memory[c48k_address(0x5C63, 1)] =  next & 255;
-    memory[c48k_address(0x5C64, 1)] = (next>>8) & 255;
-
-    // https://skoolkid.github.io/rom/asm/5C65.html
-    memory[c48k_address(0x5C65, 1)] =  next & 255;
-    memory[c48k_address(0x5C66, 1)] = (next>>8) & 255;
+    next+=2;
+    put48mem_word(0x5C61, next);    // WORKSP :: https://skoolkid.github.io/rom/asm/5C61.html
+    put48mem_word(0x5C63, next);    // STKBOT :: https://skoolkid.github.io/rom/asm/5C63.html
+    put48mem_word(0x5C65, next);    // STKEND :: https://skoolkid.github.io/rom/asm/5C65.html
 
     next++;
-
-    // https://skoolkid.github.io/rom/asm/5C5D.html
-    memory[c48k_address(0x5C5D, 1)] =  next & 255;
-    memory[c48k_address(0x5C5E, 1)] = (next>>8) & 255;
+    put48mem_word(0x5C5D, next);    // CH-ADD :: https://skoolkid.github.io/rom/asm/5C5D.html
 
     next++;
-
-    // NXTLIN :: https://skoolkid.github.io/rom/asm/5C55.html
-    memory[c48k_address(0x5C55, 1)] =  next & 255;
-    memory[c48k_address(0x5C56, 1)] = (next>>8) & 255;
+    put48mem_word(0x5C55, next);    // NXTLIN :: https://skoolkid.github.io/rom/asm/5C55.html
 
 /*
-    // Всякие непонятные параметры. Оставлю на всякий случай
-    memory[0x5C3B] = 0x84;
-
-    memory[0x5C44] = 0xFF;
-    memory[0x5C45] = 0xFE;
-
-    memory[0x5C46] = 0xFF;
-    memory[0x5C47] = 0x01;
-
-    memory[0x5C5F] = 0xF8;
-    memory[0x5C67] = 0x1B; // CALC B reg
-
-    memory[0x5C74] = 0x01;
-    memory[0x5C75] = 0x1A;
+    // Всякие непонятные параметры
+    put48mem_byte(0x5C3B, 0x84);
+    put48mem_byte(0x5C5F, 0xF8);
+    put48mem_byte(0x5C67, 0x1B); //  CALC B reg
+    *
+    put48mem_word(0x5C44, 0xFEFF);
+    put48mem_word(0x5C46, 0x01FF);
+    put48mem_word(0x5C74, 0x1A01);
 */
-    /*
-    for (int _a = 0; _a < 21; _a++) {
-
-        printf("%04X: ", 0x5c00 + _a*8);
-        for (int _b = 0; _b < 8; _b++) {
-            printf("%02X ", memory[0x5c00 + _a*8 + _b]);
-        }
-        printf("\n");
-    }
-    */
 }
 
 // Сохранение снапшота в файл (не RLE) 48k
@@ -466,4 +424,62 @@ void Z80Spectrum::loadsna(const char* filename) {
         printf("Error snapshot size %d\n", fsize);
         exit(1);
     }
+}
+
+// Сохранение 128к снапшота
+void Z80Spectrum::savesna(const char* filename) {
+
+    unsigned char data[131103];
+
+    // Базовые параметры
+    data[0] = i;
+    data[1] = l_prime; data[9]  = l;
+    data[2] = h_prime; data[10] = h;
+    data[3] = e_prime; data[11] = e;
+    data[4] = d_prime; data[12] = d;
+    data[5] = c_prime; data[13] = c;
+    data[6] = b_prime; data[14] = b;
+    data[7] = get_flags_prime();
+    data[8] = a_prime;
+
+    data[15] = iy & 0xff; data[16] = (iy>>8) & 0xff;
+    data[17] = ix & 0xff; data[18] = (ix>>8) & 0xff;
+    data[23] = sp & 0xff; data[24] = (sp>>8) & 0xff;
+
+    data[19] = (iff1&1) | ((iff2&1)<<1);
+    data[20] = r;
+    data[21] = get_flags_register();
+    data[22] = a;
+
+    data[25] = imode & 3;
+    data[26] = border_id & 7;
+
+    data[49179] = pc & 0xff;
+    data[49180] = (pc>>8) & 0xff;
+    data[49181] = port_7ffd;
+    data[49182] = !!trdos_latch;
+
+    int sel_bank = port_7ffd & 7;
+    for (int w = 0; w < 16384; w++) {
+
+        data[27    + w] = memory[5*0x4000 + w];
+        data[16411 + w] = memory[2*0x4000 + w];
+        data[32795 + w] = memory[sel_bank*0x4000 + w];
+    }
+
+    int _start = 49183;
+    for (int n = 0; n < 8; n++) {
+
+        if (n == 2 || n == 5 || n == sel_bank)
+            continue;
+
+        for (int w = 0; w < 16384; w++) {
+            data[_start++] = memory[n*0x4000 + w];
+        }
+    }
+
+    FILE* fp = fopen(filename, "w+");
+    if (fp == NULL) { printf("Can't write file %s\n", filename); exit(1); }
+    fwrite(data, 1, 131103, fp);
+    fclose(fp);
 }

@@ -180,6 +180,9 @@ protected:
     int     c48k_address(int address, int mode);
     int     z80file_bankmap(int mode, int bank);
 
+    void    put48mem_byte(int address, unsigned char value)  { memory[c48k_address(address, 1)] = value; }
+    void    put48mem_word(int address, unsigned short value) { put48mem_byte(address, value); put48mem_byte(address+1, value>>8); }
+
     int     mem_read    (int address);
     void    mem_write   (int address, int data);
     int     io_read     (int port);
@@ -215,6 +218,7 @@ protected:
     void    loadz80(const char* filename);
     void    loadz80block(int mode, int& cursor, int &addr, unsigned char* data, int top, int rle);
     void    savez80(const char* filename);
+    void    savesna(const char* filename);
     void    encodebmp(int audio_c);
     void    waveFmtHeader();
 
