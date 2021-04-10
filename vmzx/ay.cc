@@ -221,8 +221,8 @@ void Z80Spectrum::ay_sound_tick(int t_states, int& audio_c) {
 
         // Порт бипера берется за основу тона
         int beep  = !!(port_fe & 0x10) ^ !!(port_fe & 0x08);
-        int left  = beep ? 0x80 : 0xff;
-        int right = beep ? 0x80 : 0xff;
+        int left  = 0x80 + (beep ? 0 : 32);
+        int right = 0x80 + (beep ? 0 : 32);
 
         // Использовать AY
         ay_amp_adder(left, right);
