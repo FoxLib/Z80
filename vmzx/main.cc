@@ -20,6 +20,7 @@
 #include "ay.cc"
 #include "io.cc"
 #include "snapshot.cc"
+#include "disasm.cc"
 
 int main(int argc, char* argv[]) {
 

@@ -40,6 +40,7 @@ void Z80Spectrum::frame() {
 
         // Исполнение инструкции
         int t_states = run_instruction();
+
         t_states_cycle += t_states;
 
         // 1 CPU = 2 PPU
@@ -149,6 +150,23 @@ void Z80Spectrum::update_charline(int address) {
         // Вывести пиксель
         pset(48 + 8*x + j, 48 + y, clr);
     }
+}
+
+void Z80Spectrum::cls(int cl) {
+#ifndef NO_SDL
+    if (sdl_enable && sdl_screen) {
+        for (int _i = 0; _i < 9*320*240; _i++)
+            ( (Uint32*)sdl_screen->pixels )[_i] = get_color(cl);
+    }
+#endif
+}
+
+void Z80Spectrum::pixel(int x, int y, uint color) {
+#ifndef NO_SDL
+    if (sdl_enable && sdl_screen) {
+        ( (Uint32*)sdl_screen->pixels )[x + 3*320*y] = color;
+    }
+#endif
 }
 
 // Установка точки

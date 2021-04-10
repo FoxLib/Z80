@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "fonts.h"
+
 #ifndef NO_SDL
 
 #include "SDL.h"
@@ -170,6 +172,28 @@ protected:
     unsigned int  wav_cursor;
 
 // -----------------------------------------------------------------
+// Property: Disassembler
+// -----------------------------------------------------------------
+
+    int     ds_ad;             // Текущая временная позиция разбора инструкции
+    int     ds_size;           // Размер инструкции
+    char    ds_opcode[16];
+    char    ds_operand[32];
+    char    ds_prefix[16];
+    int     ds_rowdis[64];     // Адреса в строках
+    int     bp_rows[256];      // Точки прерываний
+    int     bp_count;
+    int     ds_start;          // Верхний адрес
+    int     ds_cursor;         // Курсор на линии (обычно совпадает с PC)
+    int     ds_viewmode;       // 0=Дизасм 1=Прод
+    int     ds_dumpaddr;
+    int     ds_match_row;      // Номер строки, где курсор
+    int     bp_step_over;      // =1 Включена остановка на следующем PC
+    int     bp_step_sp;
+    int     bp_step_pc;
+    int     ds_color_fore, ds_color_back;
+
+// -----------------------------------------------------------------
 // Методы: Эмуляция и память
 // -----------------------------------------------------------------
 
@@ -222,6 +246,22 @@ protected:
     void    savesna(const char* filename);
     void    encodebmp(int audio_c);
     void    waveFmtHeader();
+
+// -----------------------------------------------------------------
+// Methods: Disassembler
+// -----------------------------------------------------------------
+
+    void    ixy_disp(int prefix);
+    int     ds_fetch_byte();
+    int     ds_fetch_word();
+    int     ds_fetch_rel();
+    void    ds_color(int fore, int back);
+    int     disasm_line(int addr);
+    void    disasm_repaint();
+    void    print(int x, int y, const char* s);
+    void    print_char(int x, int y, unsigned char ch);
+    void    pixel(int x, int y, uint color);
+    void    cls(int cl);
 
 // -----------------------------------------------------------------
 // Методы: SDL-ориентированные

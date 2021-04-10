@@ -47,6 +47,18 @@ Z80Spectrum::Z80Spectrum() {
     record_file         = NULL;
     wave_file           = NULL;
 
+    ds_ad               = 0;
+    ds_size             = 0;
+    bp_count            = 0;
+    ds_start            = 0;
+    ds_cursor           = 0;
+    ds_viewmode         = 1;
+    ds_dumpaddr         = 0;
+    ds_match_row        = 0;
+    bp_step_over        = 0;
+    bp_step_sp          = 0;
+    bp_step_pc          = 0;
+
 #ifndef NO_SDL
     AudioSDLFrame       = 0; // SDL-фрейм позади основного
     AudioZXFrame        = 8; // Генеральный фрейм
