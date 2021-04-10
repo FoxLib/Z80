@@ -191,6 +191,7 @@ protected:
     int     bp_step_over;      // =1 Включена остановка на следующем PC
     int     bp_step_sp;
     int     bp_step_pc;
+    int     ds_showfb;
     int     ds_color_fore, ds_color_back;
 
 // -----------------------------------------------------------------
@@ -199,7 +200,7 @@ protected:
 
     void    frame();
     void    autostart_macro();
-    void    key_press(int row, int mask, int press);
+    void    key_press   (int row, int mask, int press);
 
     int     get_bank    (int address);
     int     c48k_address(int address, int mode);
@@ -251,6 +252,7 @@ protected:
 // Methods: Disassembler
 // -----------------------------------------------------------------
 
+    void    redraw_fb();
     void    ixy_disp(int prefix);
     int     ds_fetch_byte();
     int     ds_fetch_word();

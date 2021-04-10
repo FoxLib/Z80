@@ -313,6 +313,28 @@ void Z80Spectrum::print(int x, int y, const char* s) {
     }
 }
 
+// Перерисовать экран
+void Z80Spectrum::redraw_fb() {
+
+    // Сохранение бордера
+    for (int y = 0; y < 240; y++)
+    for (int x = 0; x < 320; x++) {
+
+        if (x < 32 || y < 24 || x >= 288 || y >= 216) {
+
+            unsigned int ptr = (239-y)*160 + (x>>1);
+            int cl = (x & 1 ? fb[ptr] : fb[ptr]>>4) & 15;
+            for (int _a = 0; _a < 9; _a++) pixel(3*x+(_a%3), 3*y+(_a/3), get_color(cl));
+        }
+    }
+
+    // Обновление текущей области PAPER
+    for (int _a = 0x4000; _a < 0x5800; _a++)
+        update_charline(_a);
+
+    ds_showfb = 1;
+}
+
 // Перерисовать дизассемблер
 void Z80Spectrum::disasm_repaint() {
 
@@ -320,6 +342,7 @@ void Z80Spectrum::disasm_repaint() {
 
     beam_drawing = 0;
     ds_start &= 0xffff;
+    ds_showfb = 0;
 
     int i, j, k, catched = 0;
     int bp_found;

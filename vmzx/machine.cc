@@ -17,22 +17,22 @@ void Z80Spectrum::main() {
         // Количество семплов 882 x 50 = 44100
         if (sdl_disable_sound == 0) {
 
-			audio_device.freq     = 44100;
-			audio_device.format   = AUDIO_U8;
-			audio_device.channels = 2;
-			audio_device.samples  = 882;
-			audio_device.callback = sdl_audio_buffer;
-			audio_device.userdata = NULL;
+            audio_device.freq     = 44100;
+            audio_device.format   = AUDIO_U8;
+            audio_device.channels = 2;
+            audio_device.samples  = 882;
+            audio_device.callback = sdl_audio_buffer;
+            audio_device.userdata = NULL;
 
-			if (SDL_OpenAudio(& audio_device, NULL) < 0) {
-				fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
-				exit(1);
-			}
+            if (SDL_OpenAudio(& audio_device, NULL) < 0) {
+                fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
+                exit(1);
+            }
 
-			for (int w = 0; w < 16*882; w++) ZXAudioBuffer[w] = 0;
+            for (int w = 0; w < 16*882; w++) ZXAudioBuffer[w] = 0;
 
-			SDL_PauseAudio(0);
-		}
+            SDL_PauseAudio(0);
+        }
 
         while (1) {
 
@@ -56,12 +56,12 @@ void Z80Spectrum::main() {
             // Если прошло 20 мс
             if (time_diff >= 20) {
 
-                frame();
+                if (ds_viewmode) frame();
                 ms_clock_old = time_curr;
                 SDL_Flip(sdl_screen);
             }
 
-			SDL_PumpEvents();
+            SDL_PumpEvents();
             SDL_Delay(1);
         }
     }
@@ -270,9 +270,41 @@ void Z80Spectrum::keyb(int press, SDL_KeyboardEvent* eventkey) {
         case SDLK_KP_DIVIDE:    key_press(7, 0x02, press); key_press(0, 0x10, press); break; // /
 
         // Отладка
-        case SDLK_F1: if (press) { loadbin("zexall", 0x8000); printf("ZXALL LOADED\n"); } break;
-        case SDLK_F2: if (press) savesna("autosave.sna"); break;
-        case SDLK_F3: if (press) loadsna("autosave.sna"); break;
+        default:
+
+            if (press)
+            switch (key) {
+
+                // Показать/скрыть экран
+                case SDLK_F5: if (ds_showfb) disasm_repaint(); else redraw_fb(); break;
+
+                // Пошаговое исполнение
+                case SDLK_F7:
+
+                    if (ds_viewmode) {
+
+                        ds_viewmode = 0;
+                        ds_cursor   = ds_start = pc;
+
+                    } else {
+
+                        t_states_cycle += run_instruction();
+                        ds_cursor = pc;
+                    }
+
+                    disasm_repaint();
+                    break;
+
+                // Запуск программы
+                case SDLK_F9:
+
+                    if (ds_viewmode == 0) ds_viewmode = 1;
+                    break;
+
+                case SDLK_F10: loadbin("zexall", 0x8000); break;
+                case SDLK_F11: loadsna("autosave.sna"); break;
+                case SDLK_F12: loadsna("autosave.sna"); break;
+            }
     }
 }
 #endif
