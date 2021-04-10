@@ -157,7 +157,7 @@ protected:
     int     ab_cursor;
     int     t_states_wav, max_audio_cycle;
     FILE*   wave_file;
-    int     ay_register, ay_regs[16], ay_amp[3];
+    int     ay_register, ay_last_data, ay_regs[16], ay_amp[3];
     int     ay_tone_tick[3], ay_tone_period[3], ay_tone_high[3];
     int     ay_tone_levels[16];
     int     ay_noise_toggle, ay_noise_period, ay_rng;

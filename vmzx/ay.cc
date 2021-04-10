@@ -15,6 +15,8 @@ void Z80Spectrum::ay_write_data(int data) {
     int reg_id  = ay_register & 15;
     int tone_id = reg_id >> 1;
 
+    ay_last_data = data;
+
     ay_regs[reg_id] = data;
 
     switch (reg_id) {
@@ -219,8 +221,8 @@ void Z80Spectrum::ay_sound_tick(int t_states, int& audio_c) {
 
         // Порт бипера берется за основу тона
         int beep  = !!(port_fe & 0x10) ^ !!(port_fe & 0x08);
-        int left  = beep ? 0xff : 0x80;
-        int right = beep ? 0xff : 0x80;
+        int left  = beep ? 0x80 : 0xff;
+        int right = beep ? 0x80 : 0xff;
 
         // Использовать AY
         ay_amp_adder(left, right);

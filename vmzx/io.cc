@@ -90,7 +90,7 @@ void Z80Spectrum::io_write(int port, int data) {
         port_7ffd = data;
     }
     // AY address register
-    else if (port == 0xFFFD) { ay_register = data; }
+    else if (port == 0xFFFD) { ay_register = data & 15; }
     // AY address data
     else if (port == 0xBFFD) { ay_write_data(data); }
     else if (port == 0x1FFD) { /* ничего пока что */ }
