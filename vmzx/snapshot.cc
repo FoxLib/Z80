@@ -18,7 +18,7 @@ int Z80Spectrum::z80file_bankmap(int mode, int bank) {
                 exit(1);
         }
     }
-    
+
     return 0;
 }
 
@@ -41,13 +41,17 @@ int Z80Spectrum::c48k_address(int address, int mode) {
 // Загрузка бинарника
 void Z80Spectrum::loadbin(const char* filename, int address) {
 
+    unsigned char databin[64*1024];
+
     FILE* fp = fopen(filename, "rb");
     if (fp == NULL) { printf("BINARY %s not exists\n", filename); exit(1); }
     fseek(fp, 0, SEEK_END);
     int fsize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
-    fread(memory + address, 1, fsize, fp);
+    fread(databin, 1, fsize, fp);
     fclose(fp);
+
+    for (int w = 0; w < fsize; w++) mem_write(address + w, databin[w]);
 }
 
 // Загрузка базового ROM

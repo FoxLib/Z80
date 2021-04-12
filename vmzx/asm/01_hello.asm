@@ -7,4 +7,4 @@ L1:     push    af
         pop     af
         inc     a
         djnz    L1
-        ret
+        jr      $+0
