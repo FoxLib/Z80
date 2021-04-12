@@ -1,4 +1,7 @@
-ASMFILE=01_hello
+FILE=01_hello
+B2T=./../bas2tap/bas2tap
 all:
-	z80asm $(ASMFILE).asm -o program.bin
-	cd .. && ./vmzx 48k.z80 -d -b asm/program.bin 8000
+	z80asm $(FILE).asm -o program.bin
+	$(B2T) -q $(FILE).bas start.tap
+	# Загрузка Бейсик-программы, автостарт (-a), загрузка бинарной программы
+	cd .. && ./vmzx 48k.z80 asm/start.tap -a -b asm/program.bin 8000

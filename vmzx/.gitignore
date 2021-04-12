@@ -2,6 +2,7 @@ vmzx
 bas2tap
 /*.z80
 /*.tap
+/asm/*.tap
 /*.sna
 *.mp4
 *.wav

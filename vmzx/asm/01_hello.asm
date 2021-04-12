@@ -1,6 +1,6 @@
 
         org     8000h
 
-        ld      a, 0x20
-        rst     $30
-        jr      $+0
+        ld      a, 0x21
+        rst     $10
+        ret
