@@ -143,7 +143,7 @@ wire W = nIORQ==1 && nRD==1 && nWR==0 && A[15:14]!=2'b00;
 assign D =
     nRD   ? 8'hZZ :             // nRD=1   Чтение не производится
     nIORQ ? Data  :             // nIORQ=1 Читать из памяти
-    A[7:0] == 8'hFE ? DKbd :    // nIORQ=0 Читать из порта FEh
+    A[0] == 1'b0 ? DKbd :       // nIORQ=0 Читать из порта FEh
     8'hFF;
 
 // 128k
@@ -185,10 +185,9 @@ always @(posedge clock_25) begin
 
         // Выбор банка и настроек возможно только при бите 5 равному 0
         if (A == 16'h7FFD && !membank[5]) membank <= D;
-        // AY-sound
-        else if (A == 18'hFFFD || A == 18'hBFFD) begin /* none yet */ end
-        // Обновление бордюра
-        // https://speccy.info/Порт_FE
+        // AY-3-8910
+        else if (A == 18'hFFFD || A == 18'hBFFD) begin /* ничего нет */ end
+        // Обновление бордюра https://speccy.info/Порт_FE
         else if (A[0] == 1'b0) begin
 
             fb_border[2:0]  <= D[2:0];         // D3-управление записью на магнитофон

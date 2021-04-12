@@ -52,7 +52,7 @@ void Z80Spectrum::mem_write(int address, int data) {
 int Z80Spectrum::io_read(int port) {
 
     // Чтение клавиатуры
-    if (port == 0x7ffd) {
+    if (port == 0x7FFD) {
         return port_7ffd;
     }
     else if (port == 0xFFFD) { return ay_register; }
