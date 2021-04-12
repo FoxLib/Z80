@@ -29,10 +29,13 @@ void Z80Spectrum::main() {
                 exit(1);
             }
 
-            for (int w = 0; w < 16*882; w++) ZXAudioBuffer[w] = 0;
+            for (int w = 0; w < 16*882; w++) ZXAudioBuffer[w] = 0x80;
 
             SDL_PauseAudio(0);
         }
+
+        // Если при старте включен отладчик - перерисовать его окно
+        if (ds_viewmode == 0) { ds_cursor = ds_start = pc; disasm_repaint(); }
 
         while (1) {
 
@@ -77,6 +80,8 @@ void Z80Spectrum::main() {
 // Разбор аргументов
 void Z80Spectrum::args(int argc, char** argv) {
 
+    int bin_offset;
+
     for (int u = 1; u < argc; u++) {
 
         // Параметр
@@ -89,7 +94,25 @@ void Z80Spectrum::args(int argc, char** argv) {
 
                 // Включение последовательности автостарта (RUN ENT)
                 case 'a': autostart = 1; break;
+
+                // Загрузка бинарного файла
+                case 'b':
+
+                    sscanf(argv[u+2], "%x", &bin_offset);
+                    loadbin(argv[u+1], bin_offset);
+                    u += 2;
+                    break;
+
+                // При загрузке включить отладчик
+                case 'd': ds_viewmode = 0; break;
+
                 case 'x': sdl_disable_sound = 1; break;
+
+                // Установка регистра PC (hex)
+                case 'p':
+
+                    sscanf(argv[u+1], "%x", & pc); u++;
+                    break;
 
                 // Файл для записи видео
                 case 'o':
@@ -103,10 +126,7 @@ void Z80Spectrum::args(int argc, char** argv) {
                     break;
 
                 // Нажатие на пробел через некоторое время
-                case 'b':
-
-                    auto_keyb = 1;
-                    break;
+                case 'k': auto_keyb = 1; break;
 
                 // Пропуск кадров
                 case 'm':
