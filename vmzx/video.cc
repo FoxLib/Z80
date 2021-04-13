@@ -24,16 +24,18 @@ void Z80Spectrum::frame() {
     // Выполнить необходимое количество циклов
     while (t_states_cycle < max_tstates) {
 
+        contended_mem = 0;
+
         // Вызвать прерывание именно здесь, перед инструкцией
         if (ppu_y == irq_row && req_int) { interrupt(0, 0xff); req_int = 0; }
 
-        // Местонахождение луча
+        // Местонахождение луча для `contended_mem` (удалено, не работает нормально)
+        /*
         if (beam_drawing  = (ppu_y >= 16) && (ppu_x >= 48)) {
             beam_in_paper = (ppu_y >= rows_paper && ppu_y < 256 && ppu_x >= 72 && ppu_x < cols_paper);
             contended_mem = (port_7ffd & 0x30) ? 1 : 0;
-        } else {
-            contended_mem = 0;
         }
+        */
 
         // Вход в TRDOS
         trdos_handler();

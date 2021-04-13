@@ -85,6 +85,8 @@ Z80Spectrum::Z80Spectrum() {
         ay_tone_period[_f] = 1;
     }
 
+    ay_regs[7] = 0xff;
+
     // Все кнопки вначале отпущены
     for (int _i = 0; _i < 8; _i++) {
         key_states[_i] = 0xff;
