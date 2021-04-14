@@ -95,7 +95,6 @@ struct __attribute__((__packed__)) WAVEFMTHEADER {
     unsigned int    subchunk2Size;  // Количество байт в области данных.
 };
 
-
 class Z80Spectrum : public Z80 {
 protected:
 
