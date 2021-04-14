@@ -192,6 +192,7 @@ protected:
     int     bp_step_sp;
     int     bp_step_pc;
     int     ds_showfb;
+    int     ds_halt_dump;
     int     ds_color_fore, ds_color_back;
 
 // -----------------------------------------------------------------
@@ -264,6 +265,7 @@ protected:
     void    print_char(int x, int y, unsigned char ch);
     void    pixel(int x, int y, uint color);
     void    cls(int cl);
+    void    z80state_dump();
 
 // -----------------------------------------------------------------
 // Методы: SDL-ориентированные

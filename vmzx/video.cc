@@ -37,6 +37,9 @@ void Z80Spectrum::frame() {
         }
         */
 
+        // Остановка выполнения программы на HALT
+        if (ds_halt_dump) { if (mem_read(pc) == 0x76) { z80state_dump(); exit(0); } }
+
         // Вход в TRDOS
         trdos_handler();
 

@@ -106,6 +106,9 @@ void Z80Spectrum::args(int argc, char** argv) {
                 // При загрузке включить отладчик
                 case 'd': ds_viewmode = 0; break;
 
+                // Остановка на HALT
+                case 'h': ds_halt_dump = 1; break;
+
                 case 'x': sdl_disable_sound = 1; break;
 
                 // Установка регистра PC (hex)
@@ -295,6 +298,9 @@ void Z80Spectrum::keyb(int press, SDL_KeyboardEvent* eventkey) {
             if (press)
             switch (key) {
 
+                case SDLK_F2: loadsna("autosave.sna"); break;
+                case SDLK_F3: loadsna("autosave.sna"); break;
+
                 // Показать/скрыть экран
                 case SDLK_F5: if (ds_showfb) disasm_repaint(); else redraw_fb(); break;
 
@@ -322,8 +328,6 @@ void Z80Spectrum::keyb(int press, SDL_KeyboardEvent* eventkey) {
                     break;
 
                 case SDLK_F10: loadbin("zexall", 0x8000); break;
-                case SDLK_F11: loadsna("autosave.sna"); break;
-                case SDLK_F12: loadsna("autosave.sna"); break;
             }
     }
 }

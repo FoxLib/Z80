@@ -59,6 +59,7 @@ Z80Spectrum::Z80Spectrum() {
     bp_step_sp          = 0;
     bp_step_pc          = 0;
     ds_showfb           = 0;
+    ds_halt_dump        = 0;
 
 #ifndef NO_SDL
     AudioSDLFrame       = 0; // SDL-фрейм позади основного

@@ -1,8 +1,1 @@
-10 LET r=65533: LET d=49149
-20 OUT r,2: OUT d,255
-30 OUT r,3: OUT d,3
-40 OUT r,9: OUT d,16
-50 OUT r,7: OUT d,253
-60 OUT r,11: OUT d,0
-60 OUT r,12: OUT d,32
-60 OUT r,13: OUT d,14
+10 PRINT "Hello"

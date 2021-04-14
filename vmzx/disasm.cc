@@ -542,3 +542,19 @@ void Z80Spectrum::ds_color(int fore, int back) {
     ds_color_fore = fore;
     ds_color_back = back;
 }
+
+void Z80Spectrum::z80state_dump() {
+
+    printf("BC:  %04X | DE:  %04X | HL:  %04X | AF:  %04X\n", b*256 + c, d*256 + e, h*256 + l, a*256 + get_flags_register());
+    printf("BC`: %04X | DE`: %04X | HL`: %04X | AF`: %04X\n", b_prime*256 + c_prime, d_prime*256 + e_prime, h_prime*256 + l_prime, a_prime*256 + get_flags_prime());
+    printf("IMODE: %d | IFF1: %d | IFF2: %d\n", imode, iff1, iff2);
+    printf("I:  %02x   | R: %02x\n", i, r);
+    printf("IX: %04x | IY: %04x\n", ix, iy);
+    printf("SP: %04x\n", sp);
+    printf("PC: %04x\n", pc);
+
+    FILE* fp = fopen("debug_memory_dump.bin", "wb+");
+    if (fp == NULL) { printf("Can't open file debug_memory_dump.bin for writing\n"); exit(1); }
+    fwrite(memory, 1, 128*1024, fp);
+    fclose(fp);
+}

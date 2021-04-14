@@ -1,6 +1,8 @@
-
-    org 8000h
+    org 8001h
     di
+L1:
     inc a
+    and 7
     out (254),a
-    jr $-3
+    halt
+    jr  L1
