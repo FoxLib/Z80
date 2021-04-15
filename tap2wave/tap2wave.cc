@@ -1,5 +1,8 @@
 #include <stdio.h>
 
+#define HI 1
+#define LO 0
+
 FILE *tap_file,
      *wave_file;
 
@@ -49,7 +52,7 @@ void write_wave_header() {
 // Записать тон длительностью t_state
 void push_tstates(int t_state, int tone) {
 
-    unsigned char tb = tone ? 0xc0 : 0x40;
+    unsigned char tb = tone ? 0xc0 : 0x80;
     unsigned char buf[1] = {tb};
 
     // Всякие хардовые вычисления
@@ -72,8 +75,8 @@ void push_byte(unsigned char data) {
     while (mask) {
 
         int len = data & mask ? 1710 : 855;
-        push_tstates(len, 1);
-        push_tstates(len, 0);
+        push_tstates(len, HI);
+        push_tstates(len, LO);
         mask >>= 1;
     }
 }
@@ -90,7 +93,7 @@ void processing() {
         cursor = 0;
         fread(buf, 1, 2, tap_file);
 
-        // Размер данных
+        // Размер данных в блоке
         int block_size = buf[0] + buf[1]*256;
 
         // К следующему блоку
@@ -99,29 +102,29 @@ void processing() {
         // Загрузка данных
         fread(buf, 1, block_size, tap_file);
 
-        // Если там 00 заголовок FF данные
-        int pilot_len = buf[cursor++] & 0x80 ? 3224 : 8064;
+        // Первый байт: 00 заголовок FF данные
+        int pilot_len = buf[cursor] & 0x80 ? 3224 : 8064;
 
-        // Лидирующие
+        // LEADER
         for (int i = 0; i < (pilot_len>>1); i++) {
-            push_tstates(2168, 1);
-            push_tstates(2168, 0);
+            push_tstates(2168, HI);
+            push_tstates(2168, LO);
         }
 
         // Сигнал синхронизации
-        push_tstates(667, 1);
-        push_tstates(735, 0);
+        push_tstates(667, HI);
+        push_tstates(735, LO);
 
         // Запись оставшихся байтов вместе с checksum
-        for (int i = 0; i < block_size - 1; i++) {
+        for (int i = 0; i < block_size; i++) {
             push_byte(buf[cursor++]);
         }
 
         // Сигнал синхронизации
-        push_tstates(954, 1);
+        push_tstates(954, HI);
 
         // Промежутки
-        for (int i = 0; i < 1000; i++) push_tstates(3500, 0);
+        for (int i = 0; i < 1000; i++) push_tstates(3500, LO);
     }
 }
 
