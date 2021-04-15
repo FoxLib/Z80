@@ -2,6 +2,8 @@
 
 #define HI 1
 #define LO 0
+#define PULSELEN_ZERO 855
+#define PULSELEN_ONE  1710
 
 FILE *tap_file,
      *wave_file;
@@ -52,7 +54,7 @@ void write_wave_header() {
 // Записать тон длительностью t_state
 void push_tstates(int t_state, int tone) {
 
-    unsigned char tb = tone ? 0xc0 : 0x80;
+    unsigned char tb = tone ? 0xc0 : 0x40;
     unsigned char buf[1] = {tb};
 
     // Всякие хардовые вычисления
@@ -67,14 +69,11 @@ void push_tstates(int t_state, int tone) {
 // Записать байт
 void push_byte(unsigned char data) {
 
-    // PULSELEN_ZERO = 855
-    // PULSELEN_ONE  = 1710
-
     unsigned char mask = 0x80;
 
     while (mask) {
 
-        int len = data & mask ? 1710 : 855;
+        int len = data & mask ? PULSELEN_ONE : PULSELEN_ZERO;
         push_tstates(len, HI);
         push_tstates(len, LO);
         mask >>= 1;
