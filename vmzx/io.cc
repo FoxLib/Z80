@@ -60,7 +60,7 @@ int Z80Spectrum::io_read(int port) {
     else if ((port & 1) == 0) {
 
         // Чтение из порта во время движения луча по бордеру
-        if (contended_mem && beam_drawing && !beam_in_paper) { cycle_counter++; }
+        // if (contended_mem && beam_drawing && !beam_in_paper) { cycle_counter++; }
 
         int result = 0xff;
         for (int row = 0; row < 8; row++) {
@@ -97,7 +97,7 @@ void Z80Spectrum::io_write(int port, int data) {
     else if ((port & 1) == 0) {
 
         // Чтение в порт во время движения луча по бордеру
-        if (contended_mem && beam_drawing && !beam_in_paper) { cycle_counter++; }
+        // if (contended_mem && beam_drawing && !beam_in_paper) { cycle_counter++; }
 
         border_id = (data & 7);
         port_fe = data;

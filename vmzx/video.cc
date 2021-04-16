@@ -21,13 +21,16 @@ void Z80Spectrum::frame() {
     // Автоматическое нажимание на клавиши
     autostart_macro();
 
+    // Всегда сбрасывать в начале кадра (чтобы демки работали)
+    t_states_cycle = 0;
+
     // Выполнить необходимое количество циклов
     while (t_states_cycle < max_tstates) {
 
         contended_mem = 0;
 
         // Вызвать прерывание именно здесь, перед инструкцией
-        if (ppu_y == irq_row && req_int) { interrupt(0, 0xff); req_int = 0; }
+        if (t_states_cycle > (irq_row*224+8) && req_int) { interrupt(0, 0xff); req_int = 0; }
 
         // Местонахождение луча для `contended_mem` (удалено, не работает нормально)
         /*
