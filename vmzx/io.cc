@@ -83,9 +83,11 @@ void Z80Spectrum::io_write(int port, int data) {
 
     if (port == 0x7ffd) {
 
-        // Не менять бит D5 если он 1
-        if ((port_7ffd & 0x20) && (data & 0x20) == 0)
-            data |= 0x20;
+        // D5: запрещение управления расширенной памятью
+        if (port_7ffd & 0x20) {
+            data |=  0x20;
+            data &= ~0x0F;
+        }
 
         port_7ffd = data;
     }

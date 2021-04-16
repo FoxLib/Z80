@@ -131,6 +131,8 @@ void Z80Spectrum::loadz80(const char* filename) {
         pc        = data[32] + 256*data[33];
         port_7ffd = data[35]; // 128k режим
 
+        io_write(0x7ffd, port_7ffd);
+
         // AY данные
         ay_register = data[38];
         for (int _a = 0; _a < 16; _a++) ay_regs[_a] = data[39+_a];
@@ -185,6 +187,7 @@ void Z80Spectrum::loadz80(const char* filename) {
     // Обычная загрузка блока 48к (v1)
     else {
 
+        port_7ffd = 0x30;
         loadz80block(1, cursor, address, data, fsize, rle);
     }
 }
@@ -403,6 +406,8 @@ void Z80Spectrum::loadsna(const char* filename) {
 
         port_7ffd   =   data[49181];
         trdos_latch = !!data[49182];
+
+        io_write(0x7ffd, port_7ffd);
 
         int sel_bank = port_7ffd & 7;
 

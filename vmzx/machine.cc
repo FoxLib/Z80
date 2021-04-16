@@ -298,7 +298,7 @@ void Z80Spectrum::keyb(int press, SDL_KeyboardEvent* eventkey) {
             if (press)
             switch (key) {
 
-                case SDLK_F2: loadsna("autosave.sna"); break;
+                case SDLK_F2: savesna("autosave.sna"); break;
                 case SDLK_F3: loadsna("autosave.sna"); break;
 
                 // Показать/скрыть экран
