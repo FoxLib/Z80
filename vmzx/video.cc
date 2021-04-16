@@ -13,7 +13,7 @@ void Z80Spectrum::frame() {
     int max_tstates   = 71680; // 69888    | 71680 (или 70908)
     int rows_paper    = 64;    // 64       | 80
     int cols_paper    = 200;   // 200      | 68
-    int irq_row       = 296;   // 296      | 304
+    int irq_row       = 304;   // 296      | 304
     int ppu_x = 0, ppu_y = 0, ay_state = 0;
 
     max_audio_cycle = max_tstates*50;
