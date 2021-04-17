@@ -4,9 +4,10 @@ SCALE=-vf "scale=w=1280:h=960,pad=width=1920:height=1080:x=320:y=60:color=black"
 
 all:
 	g++ `sdl-config --cflags --libs` main.cc -lSDL -o vmzx
-	#./vmzx test.z80
+	./vmzx
+test:
+	./vmzx test.z80
 	#./vmzx angel.z80
-	./vmzx d1.z80
 nosdl:
 	g++ -DNO_SDL main.cc -o vmzx
 tap:
