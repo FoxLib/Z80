@@ -21,6 +21,7 @@ greybox_tmp
 *.map
 *.bin
 *.hex
+*.vcd
 *.gtkw
 .qsys_edit
 undo_redo.txt
