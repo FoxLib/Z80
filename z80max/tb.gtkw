@@ -1,20 +1,20 @@
 [*]
 [*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Mon Apr 19 08:38:08 2021
+[*] Mon Apr 19 09:17:10 2021
 [*]
 [dumpfile] "/disk/fox/dev/fpga/z80/z80max/tb.vcd"
-[dumpfile_mtime] "Mon Apr 19 08:36:05 2021"
-[dumpfile_size] 181759
+[dumpfile_mtime] "Mon Apr 19 09:16:37 2021"
+[dumpfile_size] 180444
 [savefile] "/disk/fox/dev/fpga/z80/z80max/tb.gtkw"
 [timestart] 0
 [size] 1920 1031
 [pos] -1 -1
-*-5.000000 109 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-4.000000 45 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb.
 [sst_width] 295
 [signals_width] 196
 [sst_expanded] 1
-[sst_vpaned_height] 297
+[sst_vpaned_height] 298
 @28
 tb.Z80Core.CLOCK
 @22
@@ -28,7 +28,6 @@ tb.Z80Core.M0
 @22
 tb.Z80Core.d0[7:0]
 tb.Z80Core.DI[7:0]
-@23
 tb.Z80Core.t_state[4:0]
 @28
 tb.Z80Core.latency[2:0]
@@ -53,6 +52,8 @@ tb.Z80Core.h[7:0]
 tb.Z80Core.l[7:0]
 tb.Z80Core.a[7:0]
 tb.Z80Core.f[7:0]
+@23
+tb.Z80Core.prime[63:0]
 @1000200
 -R8
 @800200
