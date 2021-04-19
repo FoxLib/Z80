@@ -1,16 +1,17 @@
 [*]
 [*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Mon Apr 19 14:49:28 2021
+[*] Mon Apr 19 15:19:29 2021
 [*]
 [dumpfile] "/disk/fox/dev/fpga/z80/z80max/tb.vcd"
-[dumpfile_mtime] "Mon Apr 19 14:47:37 2021"
-[dumpfile_size] 181371
+[dumpfile_mtime] "Mon Apr 19 15:16:14 2021"
+[dumpfile_size] 145874
 [savefile] "/disk/fox/dev/fpga/z80/z80max/tb.gtkw"
 [timestart] 0
 [size] 1920 1031
 [pos] -1 -1
-*-4.000000 45 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-5.000000 39 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb.
+[treeopen] tb.Z80Core.
 [sst_width] 295
 [signals_width] 196
 [sst_expanded] 1
@@ -41,29 +42,70 @@ tb.Z80Core.opcode[7:0]
 tb.Z80Core.cc[15:0]
 @1000200
 -PROC
-@800200
+@c00200
 -R8
 @22
+[color] 7
 tb.Z80Core.b[7:0]
+[color] 7
 tb.Z80Core.c[7:0]
+[color] 7
 tb.Z80Core.d[7:0]
+[color] 7
 tb.Z80Core.e[7:0]
+[color] 7
 tb.Z80Core.h[7:0]
+[color] 7
 tb.Z80Core.l[7:0]
+[color] 7
 tb.Z80Core.a[7:0]
+[color] 7
 tb.Z80Core.f[7:0]
-@23
+[color] 7
 tb.Z80Core.prime[63:0]
-@1000200
+@1401200
 -R8
 @800200
 -R16
 @22
-tb.Z80Core.ix[15:0]
-tb.Z80Core.iy[15:0]
+[color] 6
 tb.Z80Core.pc[15:0]
+[color] 7
+tb.Z80Core.ix[15:0]
+[color] 7
+tb.Z80Core.iy[15:0]
+[color] 7
 tb.Z80Core.sp[15:0]
 @1000200
 -R16
+@c00201
+-ALU
+@22
+[color] 5
+tb.Z80Core.UnitALU.alu_m[4:0]
+[color] 5
+tb.Z80Core.UnitALU.op1[7:0]
+[color] 5
+tb.Z80Core.UnitALU.op2[7:0]
+[color] 5
+tb.Z80Core.UnitALU.alu_r[8:0]
+[color] 5
+tb.Z80Core.UnitALU.a[7:0]
+[color] 5
+tb.Z80Core.UnitALU.alu_f[7:0]
+[color] 5
+tb.Z80Core.UnitALU.alu_r16[16:0]
+[color] 5
+tb.Z80Core.UnitALU.f[7:0]
+[color] 5
+tb.Z80Core.UnitALU.ldi_xy[5:0]
+[color] 5
+tb.Z80Core.UnitALU.op1w[15:0]
+[color] 5
+tb.Z80Core.UnitALU.op2c[15:0]
+[color] 5
+tb.Z80Core.UnitALU.op2w[15:0]
+@1401201
+-ALU
 [pattern_trace] 1
 [pattern_trace] 0

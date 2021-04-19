@@ -84,6 +84,9 @@ always @(posedge CLOCK) begin
 
             end
 
+            // 3T | HALT
+            8'b01110110: begin latency <= 2; pc <= pc-2; end
+
             // 1T | LD r8, *
             8'b00xxx110: begin
 
@@ -91,9 +94,6 @@ always @(posedge CLOCK) begin
                 r8[ d0[5:3] ]<= DI;
 
             end
-
-            // 3T | HALT
-            8'b01110110: begin latency <= 2; pc <= pc-2; end
 
             // 4T | LD r8, (HL)
             8'b01xxx110: begin t_state <= 1; bus <= 1'b1; cc <= {h, l}; pc <= pc-2; end
@@ -113,7 +113,7 @@ always @(posedge CLOCK) begin
             // 1T | LD r8, r8
             8'b01xxxxxx: begin r8[ d0[5:3] ] <= r8[ d0[2:0] ]; end
 
-            // <ALU> (HL)
+            // 6T | <alu> (HL); 4T <alu> r8
             8'b10xxx110: begin t_state <= 1; alu <= d0[5:3]; op1 <= a; bus <= 1; cc <= {h, l}; end
             8'b10xxxxxx: begin t_state <= 1; alu <= d0[5:3]; op1 <= a; op2 <= r8[d0[2:0]]; end
 
@@ -142,19 +142,37 @@ always @(posedge CLOCK) begin
 
         endcase
 
-        // <ALU> A, (HL)
+        // 6T | <ALU> A, (HL)
         8'b10xxx110: case (t_state)
 
             1: begin t_state <= 2; end
             2: begin t_state <= 3; op2 <= DI; bus <= 0; end
-            3: begin r8[7] <= alu_r; r8[6] <= alu_f; t_state <= 0; end
+            3: begin
+
+                t_state <= 0;
+                latency <= 2;
+                pc <= pc - 4;
+
+                r8[6] <= alu_f;
+                if (alu != 3'b111) r8[7] <= alu_r; // Все кроме CP
+
+            end
 
         endcase
 
-        // <ALU> A, r8
+        // 4T | <ALU> A, r8
         8'b10xxxxxx: case (t_state)
 
-            1: begin r8[7] <= alu_r; r8[6] <= alu_f; t_state <= 0; t_state <= 0; end
+            1: begin
+
+                t_state <= 0;
+                latency <= 2;
+                pc <= pc - 2;
+
+                r8[6] <= alu_f;
+                if (alu != 3'b111) r8[7] <= alu_r; // Все кроме CP
+
+            end
 
         endcase
 
