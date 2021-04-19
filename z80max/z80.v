@@ -102,8 +102,8 @@ always @(posedge CLOCK) begin
 
             end
 
-            // 5T/6T | LD (**), A|HL
-            8'b001x0010: begin t_state <= 1; cc[7:0] <= DI; end
+            // 5T/6T | LD (**) <--> A|HL
+            8'b001xx010: begin t_state <= 1; cc[7:0] <= DI; end
 
             // 5T | LD A,(BC|DE)
             8'b000x1010: begin t_state <= 1; bus <= 1'b1; cc  <= d0[4] ? {d,e} : {b,c}; end
@@ -217,7 +217,22 @@ always @(posedge CLOCK) begin
         8'b00100010: case (t_state)
 
             1: begin t_state <= 2; cc[15:8] <= DI; bus <= 1; W <= 1; DO <= l; end
-            2: begin t_state <= 0; cc <= cc + 1;   bus <= 1; W <= 1; DO <= h; latency <= 3; pc <= pc - 4; end
+            2: begin t_state <= 0; cc <= cc + 1;   bus <= 1; W <= 1; DO <= h; latency <= 3; pc <= pc-2; end
+
+        endcase
+
+        // LD A|HL, (**)
+        8'b001x1010: case (t_state)
+
+            1: begin t_state <= 2; bus <= 1; cc[15:8] <= DI; end
+            2: begin t_state <= 3; bus <= 1; cc <= cc + 1; end
+            3: begin
+
+                if (opcode[4]) begin r8[`REG_A] <= DI; t_state <= 0; latency <= 2; pc <= pc-2; end
+                else begin r8[`REG_L] <= DI; t_state <= 4; bus <= 1; end
+
+            end
+            4: begin r8[`REG_H] <= DI; t_state <= 0; latency <= 2; pc <= pc - 3; end
 
         endcase
 

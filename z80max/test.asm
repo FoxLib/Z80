@@ -1,4 +1,4 @@
-        ld      a, $ef
+
         ld      ($1234), hl
 L1:
         dec     (hl)
