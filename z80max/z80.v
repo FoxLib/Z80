@@ -38,18 +38,36 @@ always @(posedge CLOCK) begin
 
         casex (d0)
 
+            // ============ CODEBANK 0 =================================
+
             // 1T | EX AF,AF'
-            8'b00001000: begin r8[7] <= prime[63:56]; prime[63:56] <= r8[7]; end
+            8'b00001000: begin r8[`REG_A] <= prime[63:56]; prime[63:56] <= r8[`REG_A]; end
 
-            // 4T | LD (BC|DE), A
-            8'b000x0010: begin
+            // 2T/3T | DJNZ *
+            8'b00010000: begin
 
-                bus <= 1'b1;
-                cc  <= d0[4] ? {d,e} : {b,c};
-                W   <= 1'b1;
-                DO  <= r8[7];
-                latency <= 3;
-                pc      <= pc-2;
+                latency <= 1;
+                if (r8[`REG_B] != 1) begin latency <= 2; pc <= pc + {{8{DI[7]}}, DI[7:0]}; end
+                r8[`REG_B] <= r8[`REG_B] - 1;
+
+            end
+
+            // 3T | JR *
+            8'b00011000: begin latency <= 2; pc <= pc + {{8{DI[7]}}, DI[7:0]}; end
+
+            // 2T/3T | JR cc, *
+            8'b001xx000: begin
+
+                // Условие подошло
+                if (condition[d0[4]] == d0[3]) begin
+
+                    latency <= 2;
+                    pc <= pc + {{8{DI[7]}}, DI[7:0]};
+
+                end else begin
+
+                    latency <= 1;
+                end
 
             end
 
@@ -62,15 +80,65 @@ always @(posedge CLOCK) begin
 
             end
 
+            // 4T | ADD HL, r16
+            8'b00xx1001: begin
+
+                t_state <= 1;
+                alu     <= `ALU_ADDW;
+                op1w    <= {h,l};
+                op2w    <= d0[5:4] == 2'b11 ? sp : {r8[ {d0[5:4],1'b0} ], r8[ {d0[5:4],1'b1} ]};
+
+            end
+
+            // 4T | LD (BC|DE), A
+            8'b000x0010: begin
+
+                bus     <= 1'b1;
+                cc      <= d0[4] ? {d,e} : {b,c};
+                W       <= 1'b1;
+                DO      <= r8[7];
+                latency <= 3;
+                pc      <= pc-2;
+
+            end
+
+            // 5T/6T | LD (**), A|HL
+            8'b001x0010: begin t_state <= 1; cc[7:0] <= DI; end
+
+            // 5T | LD A,(BC|DE)
+            8'b000x1010: begin t_state <= 1; bus <= 1'b1; cc  <= d0[4] ? {d,e} : {b,c}; end
+
             // 1T | INC/DEC r16
-            8'b00000011: begin {r8[0], r8[1]} <= {b,c} + 1'b1; end
-            8'b00001011: begin {r8[0], r8[1]} <= {b,c} - 1'b1; end
-            8'b00010011: begin {r8[2], r8[3]} <= {d,e} + 1'b1; end
-            8'b00011011: begin {r8[2], r8[3]} <= {d,e} - 1'b1; end
-            8'b00100011: begin {r8[4], r8[5]} <= {h,l} + 1'b1; end
-            8'b00101011: begin {r8[4], r8[5]} <= {h,l} - 1'b1; end
+            8'b00000011: begin {r8[`REG_B], r8[`REG_C]} <= {b,c} + 1'b1; end
+            8'b00001011: begin {r8[`REG_B], r8[`REG_C]} <= {b,c} - 1'b1; end
+            8'b00010011: begin {r8[`REG_D], r8[`REG_E]} <= {d,e} + 1'b1; end
+            8'b00011011: begin {r8[`REG_D], r8[`REG_E]} <= {d,e} - 1'b1; end
+            8'b00100011: begin {r8[`REG_H], r8[`REG_L]} <= {h,l} + 1'b1; end
+            8'b00101011: begin {r8[`REG_H], r8[`REG_L]} <= {h,l} - 1'b1; end
             8'b00110011: begin sp <= sp + 1'b1; end
             8'b00111011: begin sp <= sp - 1'b1; end
+
+            // 7T | INC/DEC (HL)
+            8'b0011010x: begin
+
+                t_state <= 1;
+                bus     <= 1;
+                cc      <= {h, l};
+                alu     <= d0[0] ? `ALU_SUB : `ALU_ADD;
+                op2     <= 1;
+
+            end
+
+            // 3T | INC/DEC r8
+            8'b00xxx10x: begin
+
+                op1 <= r8[ d0[5:3] ];
+                op2 <= 1;
+                alu <= d0[0] ? `ALU_SUB : `ALU_ADD;
+                t_state <= 1;
+                pc  <= pc-1;
+
+            end
 
             // 4T | LD (HL), *
             8'b00110110: begin
@@ -84,16 +152,16 @@ always @(posedge CLOCK) begin
 
             end
 
+            // 1T | LD r8, *
+            8'b00xxx110: begin latency <= 1; r8[ d0[5:3] ]<= DI; end
+
+            // 3T | <shift> A
+            8'b00xxx111: begin t_state <= 1; alu <= {1'b1, d0[5:3]}; op1 <= a; pc <= pc-2; end
+
+            // ============ CODEBANK 1/2 =================================
+
             // 3T | HALT
             8'b01110110: begin latency <= 2; pc <= pc-2; end
-
-            // 1T | LD r8, *
-            8'b00xxx110: begin
-
-                latency <= 1;
-                r8[ d0[5:3] ]<= DI;
-
-            end
 
             // 4T | LD r8, (HL)
             8'b01xxx110: begin t_state <= 1; bus <= 1'b1; cc <= {h, l}; pc <= pc-2; end
@@ -133,6 +201,25 @@ always @(posedge CLOCK) begin
             latency <= 1;
 
         end
+
+        // 5T | LD (**), A
+        8'b00110010: begin
+
+            cc[15:8] <= DI;
+            bus <= 1;
+            W   <= 1;
+            DO  <= a;
+            t_state <= 0; latency <= 3; pc <= pc - 3;
+
+        end
+
+        // 6T | LD (**), HL
+        8'b00100010: case (t_state)
+
+            1: begin t_state <= 2; cc[15:8] <= DI; bus <= 1; W <= 1; DO <= l; end
+            2: begin t_state <= 0; cc <= cc + 1;   bus <= 1; W <= 1; DO <= h; latency <= 3; pc <= pc - 4; end
+
+        endcase
 
         // 4T | LD r8, (HL)
         8'b01xxx110: case (t_state)
@@ -175,6 +262,44 @@ always @(posedge CLOCK) begin
             end
 
         endcase
+
+        // 4T | ADD HL, r16
+        8'b00xx1001: begin
+
+            {r8[`REG_H], r8[`REG_L]} <= alu_r16[15:0];
+            r8[`REG_F] <= alu_f;
+            t_state <= 0; latency <= 2; pc <= pc - 2;
+
+        end
+
+        // 3T | <shift> A
+        8'b00xxx111: begin
+
+            r8[`REG_A] <= alu_r;
+            r8[`REG_F] <= alu_f;
+            latency <= 1; t_state <= 0;
+
+        end
+
+        // 5T | LD A,(BC|DE)
+        8'b000x1010: case (t_state)
+
+            1: t_state <= 2;
+            2: begin r8[`REG_A] <= DI; bus <= 0; t_state <= 0; latency <= 2; pc <= pc-3; end
+
+        endcase
+
+        // 7T | INC/DEC (HL)
+        8'b0011010x: case (t_state)
+
+            1: begin t_state <= 2; pc <= pc - 5; end
+            2: begin t_state <= 3; op1 <= DI; end
+            3: begin t_state <= 0; bus <= 1; W <= 1; DO <= alu_r; r8[6] <= alu_f; latency <= 3; end
+
+        endcase
+
+        // 3T | INC/DEC r8
+        8'b00xxx10x: begin r8[ opcode[5:3] ] <= alu_r; r8[6] <= alu_f; latency <= 1; t_state <= 0; end
 
     endcase
 

@@ -20,6 +20,7 @@ greybox_tmp
 *.jic
 *.map
 *.bin
+*.hex
 *.gtkw
 .qsys_edit
 undo_redo.txt
