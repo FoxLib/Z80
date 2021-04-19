@@ -75,3 +75,74 @@ initial begin
     prime = 64'hEE_00_00_00_00_00_00_00;
 
 end
+
+`define CARRY       0
+`define NEG         1
+`define PARITY      2
+`define AUX         4
+`define ZERO        6
+`define SIGN        7
+
+// Базовый набор
+`define ALU_ADD     4'h0
+`define ALU_ADC     4'h1
+`define ALU_SUB     4'h2
+`define ALU_SBC     4'h3
+`define ALU_AND     4'h4
+`define ALU_XOR     4'h5
+`define ALU_OR      4'h6
+`define ALU_CP      4'h7
+
+// Дополнительный набор
+`define ALU_RLC     4'h8
+`define ALU_RRC     4'h9
+`define ALU_RL      4'hA
+`define ALU_RR      4'hB
+`define ALU_DAA     4'hC
+`define ALU_CPL     4'hD
+`define ALU_SCF     4'hE
+`define ALU_CCF     4'hF
+
+// Сдвиги и биты
+`define ALU_SLA     5'h10
+`define ALU_SRA     5'h11
+`define ALU_SLL     5'h12
+`define ALU_SRL     5'h13
+// ..
+`define ALU_BIT     5'h15       // 1|0101
+`define ALU_RES     5'h16       // 1|0110
+`define ALU_SET     5'h17       // 1|0111
+
+// Расширенные
+`define ALU_INC     5'h18
+`define ALU_DEC     5'h19
+`define ALU_ADDW    5'h1A
+`define ALU_SUBW    5'h1B
+`define ALU_ADCW    5'h1C
+`define ALU_SBCW    5'h1D
+`define ALU_RRLD    5'h1E
+
+// ---------------------------------------------------------------------
+// Арифметическо-логическое устройство
+// ---------------------------------------------------------------------
+
+reg  [4:0] alu;
+reg  [7:0] op1;   reg  [15:0] op1w;
+reg  [7:0] op2;   reg  [15:0] op2w;
+wire [8:0] alu_r; wire [16:0] alu_r16;
+wire [7:0] alu_f; wire [ 5:0] ldi_xy;
+
+alu UnitALU(
+
+    .alu_m  (alu),
+    .a      (a),
+    .f      (r8[6]),
+    .op1    (op1),
+    .op2    (op2),
+    .op1w   (op1w),
+    .op2w   (op2w),
+    .alu_r  (alu_r),
+    .alu_f  (alu_f),
+    .alu_r16(alu_r16),
+    .ldi_xy (ldi_xy)
+);

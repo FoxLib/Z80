@@ -38,9 +38,6 @@ always @(posedge CLOCK) begin
 
         casex (d0)
 
-            // 1T | NOP:
-            8'b00000000: begin /* nope */ end
-
             // 1T | EX AF,AF'
             8'b00001000: begin r8[7] <= prime[63:56]; prime[63:56] <= r8[7]; end
 
@@ -66,12 +63,12 @@ always @(posedge CLOCK) begin
             end
 
             // 1T | INC/DEC r16
-            8'b00000011: begin {r8[0],r8[1]} <= {b,c} + 1'b1; end
-            8'b00001011: begin {r8[0],r8[1]} <= {b,c} - 1'b1; end
-            8'b00010011: begin {r8[2],r8[3]} <= {d,e} + 1'b1; end
-            8'b00011011: begin {r8[2],r8[3]} <= {d,e} - 1'b1; end
-            8'b00100011: begin {r8[4],r8[5]} <= {h,l} + 1'b1; end
-            8'b00101011: begin {r8[4],r8[5]} <= {h,l} - 1'b1; end
+            8'b00000011: begin {r8[0], r8[1]} <= {b,c} + 1'b1; end
+            8'b00001011: begin {r8[0], r8[1]} <= {b,c} - 1'b1; end
+            8'b00010011: begin {r8[2], r8[3]} <= {d,e} + 1'b1; end
+            8'b00011011: begin {r8[2], r8[3]} <= {d,e} - 1'b1; end
+            8'b00100011: begin {r8[4], r8[5]} <= {h,l} + 1'b1; end
+            8'b00101011: begin {r8[4], r8[5]} <= {h,l} - 1'b1; end
             8'b00110011: begin sp <= sp + 1'b1; end
             8'b00111011: begin sp <= sp - 1'b1; end
 
@@ -113,8 +110,12 @@ always @(posedge CLOCK) begin
 
             end
 
-            // Команды перемещения данных
+            // 1T | LD r8, r8
             8'b01xxxxxx: begin r8[ d0[5:3] ] <= r8[ d0[2:0] ]; end
+
+            // <ALU> (HL)
+            8'b10xxx110: begin t_state <= 1; alu <= d0[5:3]; op1 <= a; bus <= 1; cc <= {h, l}; end
+            8'b10xxxxxx: begin t_state <= 1; alu <= d0[5:3]; op1 <= a; op2 <= r8[d0[2:0]]; end
 
         endcase
 
@@ -141,8 +142,26 @@ always @(posedge CLOCK) begin
 
         endcase
 
+        // <ALU> A, (HL)
+        8'b10xxx110: case (t_state)
+
+            1: begin t_state <= 2; end
+            2: begin t_state <= 3; op2 <= DI; bus <= 0; end
+            3: begin r8[7] <= alu_r; r8[6] <= alu_f; t_state <= 0; end
+
+        endcase
+
+        // <ALU> A, r8
+        8'b10xxxxxx: case (t_state)
+
+            1: begin r8[7] <= alu_r; r8[6] <= alu_f; t_state <= 0; t_state <= 0; end
+
+        endcase
+
     endcase
 
 end
 
 endmodule
+
+`include "alu.v"

@@ -1,10 +1,10 @@
 [*]
 [*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Mon Apr 19 09:17:10 2021
+[*] Mon Apr 19 14:49:28 2021
 [*]
 [dumpfile] "/disk/fox/dev/fpga/z80/z80max/tb.vcd"
-[dumpfile_mtime] "Mon Apr 19 09:16:37 2021"
-[dumpfile_size] 180444
+[dumpfile_mtime] "Mon Apr 19 14:47:37 2021"
+[dumpfile_size] 181371
 [savefile] "/disk/fox/dev/fpga/z80/z80max/tb.gtkw"
 [timestart] 0
 [size] 1920 1031
@@ -14,7 +14,7 @@
 [sst_width] 295
 [signals_width] 196
 [sst_expanded] 1
-[sst_vpaned_height] 298
+[sst_vpaned_height] 299
 @28
 tb.Z80Core.CLOCK
 @22

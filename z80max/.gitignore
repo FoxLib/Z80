@@ -19,6 +19,7 @@ greybox_tmp
 *.qqq
 *.jic
 *.map
+*.bin
 .qsys_edit
 undo_redo.txt
 PLLJ_PLLSPE_INFO.txt
