@@ -16,7 +16,8 @@ wire M0 = (t_state == 0 && latency == 0);
 `include "decl.v"
 
 // Обработка инструкции
-always @(posedge CLOCK) if (HOLD) begin
+always @(posedge CLOCK)
+if (HOLD) begin
 
     // Для обеспечения конвейера
     pc <= pc + 1;
@@ -170,9 +171,9 @@ always @(posedge CLOCK) if (HOLD) begin
             8'b01110xxx: begin
 
                 bus     <= 1'b1;
-                cc      <= {h, l};
                 W       <= 1'b1;
-                DO      <= r8[ d0[5:3] ];
+                cc      <= {h, l};
+                DO      <= r8[ d0[2:0] ];
                 latency <= 3;
                 pc      <= pc-2;
 
@@ -317,6 +318,12 @@ always @(posedge CLOCK) if (HOLD) begin
         8'b00xxx10x: begin r8[ opcode[5:3] ] <= alu_r; r8[6] <= alu_f; latency <= 1; t_state <= 0; end
 
     endcase
+
+end
+else begin
+
+    latency <= 2;
+    sp <= 16'hdffe;
 
 end
 
