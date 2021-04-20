@@ -4,6 +4,7 @@ all:
 	php bin2mif.php test.bin de0/memory.mif 65536
 	iverilog -g2005-sv -DICARUS=1 -o tb.qqq tb.v z80.v
 	vvp tb.qqq >> /dev/null
+	cd ../vmzx && ./vmzx -r1 ../z80max/test.bin -d
 vcd:
 	gtkwave tb.vcd
 wave:

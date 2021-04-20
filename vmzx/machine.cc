@@ -137,6 +137,12 @@ void Z80Spectrum::args(int argc, char** argv) {
                     sscanf(argv[u+1], "%d", &skip_first_frames); u++;
                     break;
 
+                // Загрузка ROM 0/1
+                case 'r':
+
+                    loadrom(argv[u+1], argv[u][2] - '0'); u++;
+                    break;
+
                 // Длительность
                 case 'M':
 

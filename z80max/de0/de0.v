@@ -105,7 +105,7 @@ wire        wren_cpu;
 
 z80 UnitZ80(
 
-    .CLOCK  (clock_100),
+    .CLOCK  (clock_25),
     .HOLD   (L100 == 2'b11),
     .A      (address),
     .DI     (q),
@@ -117,7 +117,7 @@ z80 UnitZ80(
 // Контроллер памяти
 // ---------------------------------------------------------------------
 
-reg         wren;
+reg wren;
 
 // Маршрутизация памяти
 always @* begin
@@ -129,7 +129,7 @@ end
 
 memory UnitMemory
 (
-    .clock     (clock_locked),
+    .clock     (clock_100),
     .address_a (address),
     .q_a       (q),
     .data_a    (data),
@@ -143,12 +143,12 @@ memory UnitMemory
 // Контроллер видеоадаптера
 // ---------------------------------------------------------------------
 
-reg  [ 2:0] border = 7;
+reg  [ 2:0] border;
 wire [15:0] address_b;
 wire [ 7:0] q_b;
 
-ula ULAUnit(
-
+ula ULAUnit
+(
     .clk        (clock_25),
     .red        (VGA_R),
     .green      (VGA_G),
