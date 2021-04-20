@@ -36,7 +36,7 @@ end
 z80 Z80Core
 (
     .CLOCK  (clock),
-    .HOLD   (1'b1),
+    .RESETn (1'b1),
     .A      (A),
     .DI     (DI),
     .DO     (DO),

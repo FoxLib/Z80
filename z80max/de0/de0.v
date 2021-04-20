@@ -106,7 +106,7 @@ wire        wren_cpu;
 z80 UnitZ80(
 
     .CLOCK  (clock_100),
-    .HOLD   (L100 == 2'b11),
+    .RESETn (L100 == 2'b11),
     .A      (address),
     .DI     (q),
     .DO     (data),

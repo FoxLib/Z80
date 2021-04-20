@@ -1,7 +1,7 @@
 module z80
 (
     input  wire         CLOCK,  // 100 Mhz
-    input  wire         HOLD,   // =1 Процессор работает
+    input  wire         RESETn, // =1 Процессор работает
     output wire [15:0]  A,      // Адрес в памяти
     input  wire [7:0]   DI,     // Данные на вход
     output reg  [7:0]   DO,     // Данные на выход
@@ -17,7 +17,7 @@ wire M0 = (t_state == 0 && latency == 0);
 
 // Обработка инструкции
 always @(posedge CLOCK)
-if (HOLD) begin
+if (RESETn) begin
 
     // Для обеспечения конвейера
     pc <= pc + 1;
@@ -39,7 +39,7 @@ if (HOLD) begin
 
         casex (d0)
 
-            // ============ CODEBANK 0 =================================
+            // ==================== CODEBANK 0 =========================
 
             // 1T | EX AF,AF'
             8'b00001000: begin r8[`REG_A] <= prime[63:56]; prime[63:56] <= r8[`REG_A]; end
@@ -47,9 +47,10 @@ if (HOLD) begin
             // 2T/3T | DJNZ *
             8'b00010000: begin
 
-                latency <= 1;
                 if (r8[`REG_B] != 1) begin latency <= 2; pc <= pc + {{8{DI[7]}}, DI[7:0]}; end
+
                 r8[`REG_B] <= r8[`REG_B] - 1;
+                latency <= 1;
 
             end
 
@@ -61,12 +62,9 @@ if (HOLD) begin
 
                 // Условие подошло
                 if (condition[d0[4]] == d0[3]) begin
-
-                    latency <= 2;
                     pc <= pc + {{8{DI[7]}}, DI[7:0]};
-
+                    latency <= 2;
                 end else begin
-
                     latency <= 1;
                 end
 
@@ -87,7 +85,7 @@ if (HOLD) begin
                 t_state <= 1;
                 alu     <= `ALU_ADDW;
                 op1w    <= {h,l};
-                op2w    <= d0[5:4] == 2'b11 ? sp : {r8[ {d0[5:4],1'b0} ], r8[ {d0[5:4],1'b1} ]};
+                op2w    <= d0[5:4] == 2'b11 ? sp : {r8[{d0[5:4],1'b0}], r8[{d0[5:4],1'b1}]};
 
             end
 
@@ -133,7 +131,7 @@ if (HOLD) begin
             // 3T | INC/DEC r8
             8'b00xxx10x: begin
 
-                op1 <= r8[ d0[5:3] ];
+                op1 <= r8[d0[5:3]];
                 op2 <= 1;
                 alu <= d0[0] ? `ALU_SUB : `ALU_ADD;
                 t_state <= 1;
@@ -154,12 +152,12 @@ if (HOLD) begin
             end
 
             // 1T | LD r8, *
-            8'b00xxx110: begin latency <= 1; r8[ d0[5:3] ]<= DI; end
+            8'b00xxx110: begin latency <= 1; r8[d0[5:3]]<= DI; end
 
             // 3T | <shift> A
             8'b00xxx111: begin t_state <= 1; alu <= {1'b1, d0[5:3]}; op1 <= a; pc <= pc-2; end
 
-            // ============ CODEBANK 1/2 =================================
+            // ==================== CODEBANK 1/2 =======================
 
             // 3T | HALT
             8'b01110110: begin latency <= 2; pc <= pc-2; end
@@ -180,11 +178,29 @@ if (HOLD) begin
             end
 
             // 1T | LD r8, r8
-            8'b01xxxxxx: begin r8[ d0[5:3] ] <= r8[ d0[2:0] ]; end
+            8'b01xxxxxx: begin r8[d0[5:3]] <= r8[d0[2:0]]; end
 
             // 6T | <alu> (HL); 4T <alu> r8
             8'b10xxx110: begin t_state <= 1; alu <= d0[5:3]; op1 <= a; bus <= 1; cc <= {h, l}; end
             8'b10xxxxxx: begin t_state <= 1; alu <= d0[5:3]; op1 <= a; op2 <= r8[d0[2:0]]; end
+
+            // ==================== CODEBANK 3 =========================
+            // 6T/1T | RET [ccc]
+            8'b11001001,
+            8'b11xxx000: if (condition[d0[5:4]] == d0[3] || d0[0])
+            begin t_state <= 1; bus <= 1; cc <= sp; sp <= sp + 2; end
+
+            // PUSH r16
+            8'b11xx0101: begin
+
+                bus <= 1;
+                cc  <= sp - 2;
+                sp  <= sp - 2;
+                W   <= 1'b1;
+                DO  <= d0[5:4] == 2'b11 ? r8[`REG_F] : r8[ {d0[5:4],1'b1} ];
+                t_state <= 1;
+
+            end
 
         endcase
 
@@ -317,13 +333,36 @@ if (HOLD) begin
         // 3T | INC/DEC r8
         8'b00xxx10x: begin r8[ opcode[5:3] ] <= alu_r; r8[6] <= alu_f; latency <= 1; t_state <= 0; end
 
+        // 6T | RET|RET ccc
+        8'b11001001,
+        8'b11xxx000: case (t_state)
+
+            1: begin t_state <= 2; cc <= cc + 1;  bus <= 1; end
+            2: begin t_state <= 3; tm[7:0] <= DI; end
+            3: begin t_state <= 0; pc <= {DI, tm[7:0]}; latency <= 2; end
+
+        endcase
+
+        // PUSH r16
+        8'b11xx0101: begin
+
+            bus <= 1;
+            cc  <= cc + 1;
+            W   <= 1'b1;
+            DO  <= opcode[5:4] == 2'b11 ? r8[`REG_A] : r8[ {opcode[5:4],1'b0} ];
+            t_state <= 0;
+            latency <= 3;
+            pc <= pc - 3;
+
+        end
+
     endcase
 
 end
 else begin
 
     latency <= 2;
-    sp <= 16'hdffe;
+    sp <= 16'hdff0;
 
 end
 
