@@ -1,17 +1,19 @@
 module de0pll(
     input wire clkin,
     input wire rst,
+    output wire m25,
+    output wire m100,
     output wire locked
 );
 altera_pll #(
     .fractional_vco_multiplier("false"),
     .reference_clock_frequency("50.0 MHz"),
     .operation_mode("normal"),
-    .number_of_clocks(0),
-    .output_clock_frequency0("0 MHz"),
+    .number_of_clocks(2),
+    .output_clock_frequency0("25.0 MHz"),
     .phase_shift0("0 ps"),
     .duty_cycle0(50),
-    .output_clock_frequency1("0 MHz"),
+    .output_clock_frequency1("100.0 MHz"),
     .phase_shift1("0 ps"),
     .duty_cycle1(50),
     .output_clock_frequency2("0 MHz"),
@@ -67,7 +69,7 @@ altera_pll #(
 )
 altera_pll_i(
     .rst (rst),
-    .outclk ({}),
+    .outclk ({m100,m25}),
     .locked (locked),
     .fboutclk (),
     .fbclk (1'b0),

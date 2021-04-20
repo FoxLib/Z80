@@ -1,6 +1,7 @@
 all:
 	z80asm test.asm -o test.bin
 	php bin2hex.php test.bin memory.hex
+	php bin2mif.php test.bin de0/memory.mif 65536
 	iverilog -g2005-sv -DICARUS=1 -o tb.qqq tb.v z80.v
 	vvp tb.qqq >> /dev/null
 vcd:

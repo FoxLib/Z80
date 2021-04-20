@@ -16,7 +16,7 @@ wire M0 = (t_state == 0 && latency == 0);
 `include "decl.v"
 
 // Обработка инструкции
-always @(posedge CLOCK) begin
+always @(posedge CLOCK) if (HOLD) begin
 
     // Для обеспечения конвейера
     pc <= pc + 1;
