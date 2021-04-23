@@ -143,8 +143,8 @@ void Z80Spectrum::loadz80(const char* filename) {
 
         if (version > 2) {
 
-            sprintf(strbuf, "ZXCORE: Z80 file has %d version\n", version);
-            fputs(strbuf, stderr);
+            //sprintf(strbuf, "ZXCORE: Z80 file has %d version\n", version);
+            // fputs(strbuf, stderr);
             //exit(1);
         }
 
