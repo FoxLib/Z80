@@ -1,4 +1,4 @@
-FILE=02_zx0
+FILE=01_hello
 B2T=./../bas2tap/bas2tap
 VMZX=cd .. && ./vmzx
 all:

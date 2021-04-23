@@ -10,11 +10,11 @@ zx0: zx0.o optimize.o compress.o memory.o zx0.h
 zx0.o:
 	$(CC) $(CFLAGS) -c zx0.c -o zx0.o
 optimize.o:
-	$(CC) $(CFLAGS) -c optimize.c -o zx0.o
+	$(CC) $(CFLAGS) -c optimize.c -o optimize.o
 compress.o:
-	$(CC) $(CFLAGS) -c compress.c -o zx0.o
+	$(CC) $(CFLAGS) -c compress.c -o compress.o
 memory.o:
-	$(CC) $(CFLAGS) -c memory.c -o zx0.o
+	$(CC) $(CFLAGS) -c memory.c -o memory.o
 
 dzx0: dzx0.c
 	$(CC) $(CFLAGS) -o dzx0 dzx0.c

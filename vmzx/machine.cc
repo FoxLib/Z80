@@ -320,6 +320,7 @@ void Z80Spectrum::keyb(int press, SDL_KeyboardEvent* eventkey) {
 
                     } else {
 
+                        halted = 0;
                         t_states_cycle += run_instruction();
                         ds_cursor = pc;
                     }

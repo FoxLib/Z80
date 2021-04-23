@@ -145,7 +145,7 @@ void Z80Spectrum::loadz80(const char* filename) {
 
             sprintf(strbuf, "ZXCORE: Z80 file has %d version\n", version);
             fputs(strbuf, stderr);
-            exit(1);
+            //exit(1);
         }
 
         // Поддерживаемые режимы: 3,4(128k) 0,1(48k)

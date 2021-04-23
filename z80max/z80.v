@@ -190,7 +190,7 @@ if (RESETn) begin
             8'b11xxx000: if (condition[d0[5:4]] == d0[3] || d0[0])
             begin t_state <= 1; bus <= 1; cc <= sp; sp <= sp + 2; end
 
-            // PUSH r16
+            // 5T | PUSH r16
             8'b11xx0101: begin
 
                 bus <= 1;
@@ -343,7 +343,7 @@ if (RESETn) begin
 
         endcase
 
-        // PUSH r16
+        // 5T | PUSH r16
         8'b11xx0101: begin
 
             bus <= 1;
