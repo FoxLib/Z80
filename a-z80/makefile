@@ -4,7 +4,7 @@ all:
 tap:
 	php bin2mif.php tb.tap de0/tapmem.mif
 bas:
-	bas2tap -q tb.bas tb.tap
+	bas2tap -q tb.bas tb.tap -sTEST.BENCH
 	make tap
 vcd:
 	gtkwave tb.vcd

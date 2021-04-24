@@ -318,6 +318,7 @@ wire [ 7:0] tap_data;
 
 tap TAPLoader
 (
+    .reset_n        (nRESET),
     .clock          (CLOCK),
     .mic            (mic),
     .play           (~KEY[0]),      // При нажатой кнопке включается PLAY
