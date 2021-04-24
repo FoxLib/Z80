@@ -12,6 +12,7 @@ always #1.5 clock_25 = ~clock_25;
 // Область памяти
 // ---------------------------------------------------------------------
 reg   [ 7:0] mem[65536]; // 64к тестовой памяти
+reg   [ 7:0] tapmem[65536];
 wire  [15:0] A;     // Address to memory
 inout [ 7:0] D;     // Data I/O
 
@@ -19,6 +20,7 @@ inout [ 7:0] D;     // Data I/O
 initial begin clock = 1; clock_25 = 0; clock_50 = 0; #2000 $finish; end
 initial begin $dumpfile("tb.vcd"); $dumpvars(0, tb); end
 initial $readmemh("tb.hex", mem, 16'h0000);
+initial $readmemh("tb.tap.hex", tapmem, 16'h0000);
 // ---------------------------------------------------------------------
 
 // Чтение из памяти или порта
@@ -49,6 +51,8 @@ wire nBUSRQ     = 1;    // Всегда 1
 wire nRESET     = 1;    // Кнопка сброса (или locked)
 
 // ---------------------------------------------------------------------
+// Реализация процессора
+// ---------------------------------------------------------------------
 
 z80_top_direct_n Z80Unit
 (
@@ -74,6 +78,24 @@ z80_top_direct_n Z80Unit
     .A          (A),
     .D          (D)
 );
+
+// ---------------------------------------------------------------------
+// Загрузчик TAP
+// ---------------------------------------------------------------------
+
+wire [15:0] tap_address;
+wire [ 7:0] tap_data = tapmem[tap_address];
+
+tap TAPLoader
+(
+    .reset_n        (1'b1),
+    .clock          (clock_25),
+    .mic            (mic),
+    .play           (1'b1),      // При нажатой кнопке включается PLAY
+    .tap_address    (tap_address),
+    .tap_data       (tap_data)
+);
+
 
 endmodule
 

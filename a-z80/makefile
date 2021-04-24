@@ -1,5 +1,5 @@
 all:
-	iverilog -g2005-sv -Icontrol -Ialu -Ibus -Iregisters -DICARUS=1 -o tb.qqq tb.v
+	iverilog -g2005-sv -Icontrol -Ialu -Ibus -Iregisters de0/tap.v -DICARUS=1 -o tb.qqq tb.v
 	vvp tb.qqq >> /dev/null
 tap:
 	php bin2mif.php tb.tap de0/tapmem.mif

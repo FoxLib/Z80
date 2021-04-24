@@ -1,24 +1,27 @@
 [*]
 [*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Fri Apr 23 17:45:54 2021
+[*] Sat Apr 24 16:57:31 2021
 [*]
 [dumpfile] "/disk/fox/dev/fpga/z80/a-z80/tb.vcd"
-[dumpfile_mtime] "Fri Apr 23 17:35:51 2021"
-[dumpfile_size] 243307
+[dumpfile_mtime] "Sat Apr 24 16:57:01 2021"
+[dumpfile_size] 254768
 [savefile] "/disk/fox/dev/fpga/z80/a-z80/tb.gtkw"
-[timestart] 0
+[timestart] 13643
 [size] 1920 1031
 [pos] -1 -1
-*-8.000000 324 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-7.000000 18864 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb.
 [treeopen] tb.Z80Unit.
 [sst_width] 345
-[signals_width] 173
+[signals_width] 232
 [sst_expanded] 1
-[sst_vpaned_height] 303
+[sst_vpaned_height] 304
 @28
 tb.clock
 tb.clock_25
+@c00200
+-PROC
+@28
 [color] 2
 tb.nM1
 @22
@@ -42,5 +45,32 @@ tb.nRFSH
 tb.nBUSACK
 [color] 4
 tb.nHALT
+@1401200
+-PROC
+@800200
+-TAP
+@22
+tb.TAPLoader.tap_address[15:0]
+@23
+tb.TAPLoader.tap_data[7:0]
+@28
+tb.TAPLoader.bitn[2:0]
+@22
+tb.TAPLoader.cnt[11:0]
+tb.TAPLoader.hdata[10:0]
+tb.TAPLoader.ldata[10:0]
+tb.TAPLoader.length[15:0]
+@28
+[color] 2
+tb.TAPLoader.mic
+@22
+tb.TAPLoader.pilot[12:0]
+@28
+tb.TAPLoader.play
+tb.TAPLoader.reset_n
+@22
+tb.TAPLoader.state[3:0]
+@1000200
+-TAP
 [pattern_trace] 1
 [pattern_trace] 0
