@@ -1,22 +1,21 @@
 [*]
 [*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Mon Dec 21 18:06:54 2020
+[*] Fri Apr 23 17:45:54 2021
 [*]
-[dumpfile] "/disk/fox/dev/z80/a-z80/tb.vcd"
-[dumpfile_mtime] "Mon Dec 21 18:06:40 2020"
-[dumpfile_size] 228370
-[savefile] "/disk/fox/dev/z80/a-z80/tb.gtkw"
+[dumpfile] "/disk/fox/dev/fpga/z80/a-z80/tb.vcd"
+[dumpfile_mtime] "Fri Apr 23 17:35:51 2021"
+[dumpfile_size] 243307
+[savefile] "/disk/fox/dev/fpga/z80/a-z80/tb.gtkw"
 [timestart] 0
-[size] 1918 1022
+[size] 1920 1031
 [pos] -1 -1
-*-6.000000 134 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-8.000000 324 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb.
 [treeopen] tb.Z80Unit.
-[treeopen] tb.Z80Unit.reg_file_.
 [sst_width] 345
 [signals_width] 173
 [sst_expanded] 1
-[sst_vpaned_height] 300
+[sst_vpaned_height] 303
 @28
 tb.clock
 tb.clock_25
@@ -28,10 +27,8 @@ tb.A[15:0]
 @28
 [color] 2
 tb.nMREQ
-@29
 [color] 2
 tb.nIORQ
-@28
 [color] 2
 tb.nRD
 [color] 2
