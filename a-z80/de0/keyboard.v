@@ -8,9 +8,10 @@ module keyboard(
     output reg        f1_screen
 );
 
-reg  released = 1'b0;
-reg  [5:0] zx_keys[8];
-initial f1_screen = 1'b0;
+reg         released = 1'b0;
+reg  [5:0]  zx_keys[8];
+
+initial     f1_screen = 1'b0;
 
 initial begin
 

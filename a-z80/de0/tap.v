@@ -1,8 +1,9 @@
-module tap(
-
+module tap
+(
     input   wire        clock,      // 3.5 Mhz
+    input   wire        play,       // Сигнал запуска ленты =1
     output  reg         mic,
-    output  reg [14:0]  tap_address,
+    output  reg [15:0]  tap_address,
     input   wire [7:0]  tap_data
 );
 
@@ -19,8 +20,9 @@ always @(posedge clock) begin
 
     case (state)
 
-        // Считывание длины блока
-        0: begin state <= 1; cnt <= 0; mic <= 1; bitn <= 7; end
+        // Ожидание "включения магнитофона"
+        0: begin state <= play ? 1 : 0; cnt <= 0; mic <= 1; bitn <= 7; end
+        // Считывание длины блока.
         1: begin state <= 2; length[7:0]  <= tap_data; tap_address <= tap_address + 1; end
         2: begin state <= 3; length[15:8] <= tap_data; tap_address <= tap_address + 1; end
         // Запись длины блока

@@ -88,8 +88,8 @@ wire clock_100;
 wire clock_cpu = SW[1] ? clock_25 : clock_3_5;
 wire locked;
 
-de0pll u0(
-
+de0pll u0
+(
     // Источник тактирования
     .clkin  (CLOCK_50),
 
@@ -102,8 +102,10 @@ de0pll u0(
     .locked (locked),
 );
 
+// -----------------------------------------------------------------------
 // Интерфейс памяти
 // -----------------------------------------------------------------------
+
 reg   [ 7:0] Data;              // Данные на основную шину
 wire  [ 7:0] Dout;              // Оперативная память 128k
 wire  [ 7:0] Drom;              // Обращение к ROM
@@ -111,6 +113,21 @@ wire  [15:0] A;
 wire  [ 7:0] D;
 reg   [16:0] address;
 reg   [ 7:0] membank = 8'b00000000;
+
+// Писать только если разрешено, и не указывает на ROM
+wire W = (nIORQ == 1 && nRD == 1 && nWR == 0 && A[15:14] != 2'b00);
+
+// При nRD=0 - читать из памяти или порта
+assign D =
+    // nRD=1   Чтение не производится
+    nRD   ? 8'hZZ :
+    // nIORQ=1 Читать из памяти
+    nIORQ ? Data  :
+    // @TODO читать из AY
+    // nIORQ=0 Читать из порта FEh
+    A[0] == 1'b0 ? {1'b1, /*D6*/ mic, 1'b1, /*D4..D0*/ DKbd[4:0]} :
+    // Все остальное
+    8'hFF;
 
 // Dout - декодирование в зависимости от состояния маппинга памяти
 always @* begin
@@ -129,22 +146,12 @@ always @* begin
         // Средняя память: всегда bank 2
         /* 8000-BFFF */ 2'b10: begin address = {3'b010, A[13:0]}; end
 
-        // Верхняя память
-        /* C000-FFFF */ 2'b11: begin address = {membank[2:0], A[13:0]}; end
+        // Верхняя память; заблокировать переключение банков если membank[5]=1
+        /* C000-FFFF */ 2'b11: begin address = {membank[5] ? 3'b000 : membank[2:0], A[13:0]}; end
 
     endcase
 
 end
-
-// Писать только если разрешено, и не указывает на ROM
-wire W = nIORQ==1 && nRD==1 && nWR==0 && A[15:14]!=2'b00;
-
-// При nRD=0 - читать из памяти или порта
-assign D =
-    nRD   ? 8'hZZ :             // nRD=1   Чтение не производится
-    nIORQ ? Data  :             // nIORQ=1 Читать из памяти
-    A[0] == 1'b0 ? DKbd :       // nIORQ=0 Читать из порта FEh
-    8'hFF;
 
 // 128k
 memory UnitM
@@ -158,32 +165,36 @@ memory UnitM
     .wren_a     (W),
 
     // Видеоадаптер (5-й или 7-й банк)
-    .address_b  ({1'b1, membank[3], 2'b10, fb_addr}),
+    // Если membank[5]=1, заблокирован на 5-й экран
+    .address_b  ({1'b1, membank[5] ? membank[3] : 1'b0, 2'b10, fb_addr}),
     .q_b        (fb_data),
 );
 
-// 32k
-rom UnitR(
-
+// 32k ROM
+rom UnitR
+(
     .clock      (clock_100),
     .address_a  (address[14:0]),
     .q_a        (Drom),
 
 );
 
+// ---------------------------------------------------------------------
 // Ввод-вывод
 // ---------------------------------------------------------------------
 
-reg speaker;
+wire mic;
+reg  speaker;
 
 always @(posedge clock_25) begin
 
     // Обновить параметры при сбросе
     if (RESET_N == 1'b0) membank <= 1'b0;
 
-    if (nIORQ==0 && nRD==1 && nWR==0) begin
+    // Обнаружена запись в порт
+    if (nIORQ == 0 && nRD == 1 && nWR == 0) begin
 
-        // Выбор банка и настроек возможно только при бите 5 равному 0
+        // Выбор банка и настроек возможны только при бите 5, равному 0
         if (A == 16'h7FFD && !membank[5]) membank <= D;
         // AY-3-8910
         else if (A == 18'hFFFD || A == 18'hBFFD) begin /* ничего нет */ end
@@ -199,6 +210,7 @@ always @(posedge clock_25) begin
 
 end
 
+// ---------------------------------------------------------------------
 // Видеоадаптер
 // ---------------------------------------------------------------------
 
@@ -223,10 +235,12 @@ video UnitV(
     .blue       (VGA_B),
     .hs         (VGA_HS),
     .vs         (VGA_VS),
+
+    // Данные
     .video_addr (fb_addr),
     .video_data (fb_data),
     .border     (fb_border),
-    .nvblank    (nvblank),
+    .nvblank    (nvblank),          // IRQ
 
     // Альтернативный экран
     .f1_screen  (f1_screen),
@@ -238,9 +252,11 @@ video UnitV(
     .ch_data2   (ch_data2),
 );
 
+// ---------------------------------------------------------------------
 // Специальный модуль с экранами подсказок и календарем
+// ---------------------------------------------------------------------
 
-// Шрифты 8x16
+// Шрифты 8x16 (4k)
 font UnitFnt
 (
     .clock      (clock_100),
@@ -248,7 +264,7 @@ font UnitFnt
     .q_a        (fn_data)
 );
 
-// Экран календаря
+// Экран календаря (4k)
 srcdata #(.MIF_FILE("screen1.mif")) UnitSrc1
 (
     .clock      (clock_100),
@@ -256,7 +272,7 @@ srcdata #(.MIF_FILE("screen1.mif")) UnitSrc1
     .q_a        (ch_data1)
 );
 
-// Экран справки к спектруму
+// Экран справки к спектруму (4k)
 srcdata #(.MIF_FILE("screen2.mif")) UnitSrc2
 (
     .clock      (clock_100),
@@ -264,9 +280,10 @@ srcdata #(.MIF_FILE("screen2.mif")) UnitSrc2
     .q_a        (ch_data2)
 );
 
-
+// ---------------------------------------------------------------------
 // Модуль клавиатуры
 // ---------------------------------------------------------------------
+
 wire [7:0]  ps2_data;
 wire        ps2_data_clk;
 wire [7:0]  DKbd;
@@ -290,6 +307,30 @@ keyboard UnitKBD(
     .A              (A),
     .D              (DKbd),
     .f1_screen      (f1_screen),
+);
+
+// ---------------------------------------------------------------------
+// Эмулятор магнитофона
+// ---------------------------------------------------------------------
+
+wire [15:0] tap_address;
+wire [ 7:0] tap_data;
+
+tap TAPLoader
+(
+    .clock          (CLOCK),
+    .mic            (mic),
+    .play           (~KEY[0]),      // При нажатой кнопке включается PLAY
+    .tap_address    (tap_address),
+    .tap_data       (tap_data)
+);
+
+// Модуль памяти с tap-файлом
+tapmem UnitTapmem
+(
+    .clock     (clock_100),
+    .address_a (tap_address),
+    .q_a       (tap_data),
 );
 
 // ---------------------------------------------------------------------

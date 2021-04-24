@@ -1,6 +1,11 @@
 all:
 	iverilog -g2005-sv -Icontrol -Ialu -Ibus -Iregisters -DICARUS=1 -o tb.qqq tb.v
 	vvp tb.qqq >> /dev/null
+tap:
+	php bin2mif.php tb.tap de0/tapmem.mif
+bas:
+	bas2tap -q tb.bas tb.tap
+	make tap
 vcd:
 	gtkwave tb.vcd
 wave:
