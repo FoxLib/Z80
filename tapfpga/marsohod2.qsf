@@ -1,0 +1,111 @@
+# Configuration
+# ============================================================
+set_global_assignment -name FAMILY "Cyclone III"
+set_global_assignment -name DEVICE EP3C10E144C8
+set_global_assignment -name TOP_LEVEL_ENTITY marsohod2
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION "9.1 SP2"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "11:30:40  JULY 19, 2017"
+set_global_assignment -name LAST_QUARTUS_VERSION "9.1 SP2"
+set_global_assignment -name USE_GENERATED_PHYSICAL_CONSTRAINTS OFF -section_id eda_blast_fpga
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name NOMINAL_CORE_SUPPLY_VOLTAGE 1.2V
+set_global_assignment -name VERILOG_FILE marsohod2.v
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name LL_ROOT_REGION ON -section_id "Root Region"
+set_global_assignment -name LL_MEMBER_STATE LOCKED -section_id "Root Region"
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_WEAK_PULLUP "AS INPUT TRI-STATED"
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "2.5 V"
+set_global_assignment -name CYCLONEII_RESERVE_NCEO_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DATA0_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DATA1_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_FLASH_NCE_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name FORCE_CONFIGURATION_VCCIO ON
+
+# Location assignments
+# ============================================================
+set_location_assignment PIN_79 -to led[3]
+set_location_assignment PIN_83 -to led[2]
+set_location_assignment PIN_84 -to led[1]
+set_location_assignment PIN_85 -to led[0]
+set_location_assignment PIN_23 -to keys[0]
+set_location_assignment PIN_22 -to keys[1]
+set_location_assignment PIN_100 -to adc_input[0]
+set_location_assignment PIN_99 -to adc_input[1]
+set_location_assignment PIN_98 -to adc_input[2]
+set_location_assignment PIN_91 -to adc_input[3]
+set_location_assignment PIN_90 -to adc_input[4]
+set_location_assignment PIN_89 -to adc_input[5]
+set_location_assignment PIN_87 -to adc_input[7]
+set_location_assignment PIN_88 -to adc_input[6]
+set_location_assignment PIN_25 -to clk
+set_location_assignment PIN_86 -to adc_clock_20mhz
+set_location_assignment PIN_128 -to vga_b[4]
+set_location_assignment PIN_129 -to vga_b[3]
+set_location_assignment PIN_132 -to vga_b[2]
+set_location_assignment PIN_133 -to vga_b[1]
+set_location_assignment PIN_135 -to vga_b[0]
+set_location_assignment PIN_144 -to vga_r[4]
+set_location_assignment PIN_1 -to vga_r[3]
+set_location_assignment PIN_2 -to vga_r[2]
+set_location_assignment PIN_3 -to vga_r[1]
+set_location_assignment PIN_7 -to vga_r[0]
+set_location_assignment PIN_136 -to vga_g[5]
+set_location_assignment PIN_137 -to vga_g[4]
+set_location_assignment PIN_138 -to vga_g[3]
+set_location_assignment PIN_141 -to vga_g[2]
+set_location_assignment PIN_142 -to vga_g[1]
+set_location_assignment PIN_143 -to vga_g[0]
+set_location_assignment PIN_127 -to vga_hs
+set_location_assignment PIN_126 -to vga_vs
+set_location_assignment PIN_60 -to sdram_addr[0]
+set_location_assignment PIN_64 -to sdram_addr[1]
+set_location_assignment PIN_65 -to sdram_addr[2]
+set_location_assignment PIN_66 -to sdram_addr[3]
+set_location_assignment PIN_46 -to sdram_addr[4]
+set_location_assignment PIN_49 -to sdram_addr[5]
+set_location_assignment PIN_50 -to sdram_addr[6]
+set_location_assignment PIN_51 -to sdram_addr[7]
+set_location_assignment PIN_52 -to sdram_addr[8]
+set_location_assignment PIN_53 -to sdram_addr[9]
+set_location_assignment PIN_59 -to sdram_addr[10]
+set_location_assignment PIN_54 -to sdram_addr[11]
+set_location_assignment PIN_55 -to sdram_bank[0]
+set_location_assignment PIN_58 -to sdram_bank[1]
+set_location_assignment PIN_30 -to sdram_dq[15]
+set_location_assignment PIN_31 -to sdram_dq[14]
+set_location_assignment PIN_32 -to sdram_dq[13]
+set_location_assignment PIN_33 -to sdram_dq[12]
+set_location_assignment PIN_34 -to sdram_dq[11]
+set_location_assignment PIN_38 -to sdram_dq[10]
+set_location_assignment PIN_39 -to sdram_dq[9]
+set_location_assignment PIN_42 -to sdram_dq[8]
+set_location_assignment PIN_71 -to sdram_dq[7]
+set_location_assignment PIN_72 -to sdram_dq[6]
+set_location_assignment PIN_73 -to sdram_dq[5]
+set_location_assignment PIN_74 -to sdram_dq[4]
+set_location_assignment PIN_75 -to sdram_dq[3]
+set_location_assignment PIN_76 -to sdram_dq[2]
+set_location_assignment PIN_77 -to sdram_dq[1]
+set_location_assignment PIN_80 -to sdram_dq[0]
+set_location_assignment PIN_68 -to sdram_cas
+set_location_assignment PIN_44 -to sdram_clock
+set_location_assignment PIN_70 -to sdram_ldqm
+set_location_assignment PIN_67 -to sdram_ras
+set_location_assignment PIN_43 -to sdram_udqm
+set_location_assignment PIN_69 -to sdram_we
+set_location_assignment PIN_24 -to ftdi_rx
+set_location_assignment PIN_28 -to ftdi_tx
+set_location_assignment PIN_101 -to usb0[0]
+set_location_assignment PIN_103 -to usb1[0]
+set_location_assignment PIN_104 -to usb1[1]
+set_location_assignment PIN_105 -to usb0[1]
+set_location_assignment PIN_111 -to sound_left
+set_location_assignment PIN_112 -to sound_right
+set_location_assignment PIN_113 -to ps2_keyb_clk
+set_location_assignment PIN_114 -to ps2_keyb_dat
+set_location_assignment PIN_115 -to ps2_mouse_clk
+set_location_assignment PIN_119 -to ps2_mouse_dat
+
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
