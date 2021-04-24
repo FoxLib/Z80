@@ -5,16 +5,23 @@ module tap
     input   wire        play,       // Сигнал запуска ленты =1
     output  reg         mic,
     output  reg [15:0]  tap_address,
-    input   wire [7:0]  tap_data
+    input   wire [7:0]  tap_data,
+
+    output  wire [3:0] __debug
 );
+
+assign __debug  = state;
+
+
+
 
 `ifdef ICARUS
 parameter
     PILOT_PERIOD = 4,
     PILOT_HEADER = 6,
     PILOT_DATA   = 3,
-    SYNC_HI      = 3,
-    SYNC_LO      = 2,
+    SYNC_HI      = 4,
+    SYNC_LO      = 3,
     SIGNAL_0     = 2,
     SIGNAL_1     = 4;
 `else
@@ -90,21 +97,22 @@ always @(posedge clock) begin
             hdata <= tap_data[ bitn ] ? SIGNAL_1 : SIGNAL_0;
             ldata <= tap_data[ bitn ] ? SIGNAL_1 : SIGNAL_0;
 
+            // Это последний байт в потоке
+            if (bitn == 7 && length == 0)
+                state <= 0;
+
             // Если это младший бит, то следующий будет старший
             if (bitn == 0) begin
 
                 length      <= length - 1;
                 tap_address <= tap_address + 1;
 
-                // Это последний байт в потоке
-                if (length == 1) state <= 0;
-
             end
 
         end
         // Подача сигнала 1710 или 855
         8: begin mic <= 1; state <= hdata == 2 ? 9 : 8; hdata <= hdata - 1; end
-        9: begin mic <= 0; state <= ldata == 2 ? 7 : 9; ldata <= ldata - 1; end
+        9: begin mic <= 0; state <= ldata == 1 ? 7 : 9; ldata <= ldata - 1; end
 
         // STOP
         15: begin state <= 15; end
