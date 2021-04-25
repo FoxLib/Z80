@@ -1,1 +1,1 @@
-10 PRINT 2+2
+10 PRINT "Hello, Undertale world!"

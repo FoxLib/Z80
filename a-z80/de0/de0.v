@@ -324,8 +324,6 @@ tap TAPLoader
     .play           (~KEY[0]),      // При нажатой кнопке включается PLAY
     .tap_address    (tap_address),
     .tap_data       (tap_data),
-
-    //.__debug    (LEDR[3:0])
 );
 
 // Модуль памяти с tap-файлом

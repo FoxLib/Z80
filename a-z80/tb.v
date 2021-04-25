@@ -96,7 +96,6 @@ tap TAPLoader
     .tap_data       (tap_data)
 );
 
-
 endmodule
 
 `include "clk_delay.v"

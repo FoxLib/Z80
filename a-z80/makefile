@@ -4,7 +4,7 @@ all:
 tap:
 	php bin2mif.php tb.tap de0/tapmem.mif
 bas:
-	bas2tap -q tb.bas tb.tap -sTEST.BENCH
+	bas2tap -q tb.bas tb.tap -sHELLOBENCH
 	make tap
 vcd:
 	gtkwave tb.vcd
@@ -14,3 +14,5 @@ clean:
 	rm -f *.rpt *.summary *.sof *.done *.pin *.qws *.bak *.smsg *.qws *.vcd \
 		  *.qqq *.jic *.map *.qqq undo_redo.txt PLLJ_PLLSPE_INFO.txt
 	rm -rf db incremental_db simulation timing output_files
+%:
+	php bin2mif.php $@.tap de0/tapmem.mif

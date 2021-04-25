@@ -5,15 +5,8 @@ module tap
     input   wire        play,       // Сигнал запуска ленты =1
     output  reg         mic,
     output  reg [15:0]  tap_address,
-    input   wire [7:0]  tap_data,
-
-    output  wire [3:0] __debug
+    input   wire [7:0]  tap_data
 );
-
-assign __debug  = state;
-
-
-
 
 `ifdef ICARUS
 parameter
@@ -37,11 +30,13 @@ parameter
 
 reg [ 3:0] state  = 0;
 reg [11:0] cnt    = 0; // 2^12=4096
-reg [15:0] length = 0;
 reg [12:0] pilot  = 0; // 8064 | 3224
+reg [15:0] length = 0;
 reg [10:0] hdata  = 0;
 reg [10:0] ldata  = 0;
 reg [ 2:0] bitn   = 0;
+reg [20:0] delay  = 0; // Задержка после header
+reg        block  = 0; // Тип блока
 
 initial tap_address = 0;
 
@@ -58,14 +53,23 @@ always @(posedge clock) begin
     else case (state)
 
         // Ожидание "включения магнитофона"
-        0: begin state <= play ? 1 : 0; cnt <= 0; mic <= 1; bitn <= 7; end
+        0: begin state <= play ? 1 : 0; mic <= 1; end
         // Считывание длины блока
         1: begin state <= 2; length[ 7:0] <= tap_data; tap_address <= tap_address + 1; end
         2: begin state <= 3; length[15:8] <= tap_data; tap_address <= tap_address + 1; end
         // Запись длины блока
-        3: begin state <= length ? 4 : 15; pilot <= tap_data[7] ? PILOT_DATA : PILOT_HEADER; end
-        // Запись пилотного сигнала
+        3: begin
+
+            state <= length ? 4 : 15;
+            block <= tap_data[7];
+            pilot <= tap_data[7] ? PILOT_DATA : PILOT_HEADER;
+            delay <= 1750000;
+            bitn  <= 7;
+            cnt   <= 0;
+
+        end
         // for (i = 0; i < pilot; i++) for (j = 0; j < cnt; j++) mic ^= 1;
+        // Запись пилотного сигнала
         4: begin
 
             cnt <= cnt + 1;
@@ -98,8 +102,9 @@ always @(posedge clock) begin
             ldata <= tap_data[ bitn ] ? SIGNAL_1 : SIGNAL_0;
 
             // Это последний байт в потоке
+            // Если тип блока 0 то должна быть задержка после header
             if (bitn == 7 && length == 0)
-                state <= 0;
+                state <= (block ? 0 : 10);
 
             // Если это младший бит, то следующий будет старший
             if (bitn == 0) begin
@@ -110,12 +115,13 @@ always @(posedge clock) begin
             end
 
         end
-        // Подача сигнала 1710 или 855
+
+        // Подача сигнала 1710 или 855 (запись данных)
         8: begin mic <= 1; state <= hdata == 2 ? 9 : 8; hdata <= hdata - 1; end
         9: begin mic <= 0; state <= ldata == 1 ? 7 : 9; ldata <= ldata - 1; end
 
-        // STOP
-        15: begin state <= 15; end
+        // Задержка после HEADER и начало считывания нового блока с данными
+        10: if (delay) delay <= delay - 1; else state <= 1;
 
     endcase
 
