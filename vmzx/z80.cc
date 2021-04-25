@@ -314,6 +314,8 @@ public:
                 //  but it doesn't appear that this is actually the case on the hardware,
                 //  so we don't attempt to enforce that here.
                 int vector_address = ((i << 8) | data);
+
+                // VALID address decoding
                 pc = mem_read(vector_address) |
                     (mem_read((vector_address + 1) & 0xffff) << 8);
 

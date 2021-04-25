@@ -1,57 +1,67 @@
 [*]
 [*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Sat Apr 24 17:55:57 2021
+[*] Sun Apr 25 07:19:39 2021
 [*]
 [dumpfile] "/disk/fox/dev/fpga/z80/a-z80/tb.vcd"
-[dumpfile_mtime] "Sat Apr 24 17:41:26 2021"
-[dumpfile_size] 256896
+[dumpfile_mtime] "Sun Apr 25 07:14:18 2021"
+[dumpfile_size] 936631
 [savefile] "/disk/fox/dev/fpga/z80/a-z80/tb.gtkw"
-[timestart] 6192
+[timestart] 1874
 [size] 1920 1031
 [pos] -1 -1
-*-9.000000 338 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-8.000000 2880 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb.
 [treeopen] tb.Z80Unit.
 [sst_width] 345
 [signals_width] 232
 [sst_expanded] 1
-[sst_vpaned_height] 304
+[sst_vpaned_height] 306
 @28
 tb.clock
 tb.clock_25
-@c00200
+@800200
 -PROC
 @28
 [color] 2
 tb.nM1
 @22
 tb.I[7:0]
+@c00023
+tb.D[7:0]
+@28
+(0)tb.D[7:0]
+(1)tb.D[7:0]
+(2)tb.D[7:0]
+(3)tb.D[7:0]
+(4)tb.D[7:0]
+(5)tb.D[7:0]
+(6)tb.D[7:0]
+(7)tb.D[7:0]
+@1401201
+-group_end
+@22
 tb.A[15:0]
 @28
 [color] 2
 tb.nMREQ
 [color] 2
-tb.nIORQ
-[color] 2
 tb.nRD
 [color] 2
 tb.nWR
-@22
-tb.D[7:0]
-@28
+[color] 2
+tb.nIORQ
 [color] 2
 tb.nRFSH
 [color] 4
 tb.nBUSACK
 [color] 4
 tb.nHALT
-@1401200
+@1000200
 -PROC
-@800200
+@c00200
 -TAP
 @22
 tb.TAPLoader.tap_address[15:0]
-@23
 tb.TAPLoader.tap_data[7:0]
 @28
 tb.TAPLoader.bitn[2:0]
@@ -70,7 +80,10 @@ tb.TAPLoader.play
 tb.TAPLoader.reset_n
 @22
 tb.TAPLoader.state[3:0]
-@1000200
+@1401200
 -TAP
+@28
+tb.nINT
+tb.Z80Unit.execute_.im2
 [pattern_trace] 1
 [pattern_trace] 0

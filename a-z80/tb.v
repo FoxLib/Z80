@@ -5,6 +5,10 @@ reg clock;
 reg clock_25;
 reg clock_50;
 
+// Срабатывает при 0, вызывается при каждом кадре VGA (50 Гц должно быть)
+// При этом 0 активен от начала до конца линии (256 пикселей)
+reg nINT = 1'b1;
+
 always #0.5 clock    = ~clock;
 always #1.0 clock_50 = ~clock_50;
 always #1.5 clock_25 = ~clock_25;
@@ -13,11 +17,11 @@ always #1.5 clock_25 = ~clock_25;
 // ---------------------------------------------------------------------
 reg   [ 7:0] mem[65536]; // 64к тестовой памяти
 reg   [ 7:0] tapmem[65536];
-wire  [15:0] A;     // Address to memory
-inout [ 7:0] D;     // Data I/O
+wire  [15:0] A;         // Address to memory
+inout [ 7:0] D;         // Data I/O
 
 // ---------------------------------------------------------------------
-initial begin clock = 1; clock_25 = 0; clock_50 = 0; #2000 $finish; end
+initial begin clock = 1; clock_25 = 0; clock_50 = 0; #200 nINT = 1'b0; #2000 $finish; end
 initial begin $dumpfile("tb.vcd"); $dumpvars(0, tb); end
 initial $readmemh("tb.hex", mem, 16'h0000);
 initial $readmemh("tb.tap.hex", tapmem, 16'h0000);
@@ -29,8 +33,13 @@ wire [7:0] I = nIORQ ? mem[A] : 8'hFF;
 // Запись в память
 always @(posedge clock) if (nIORQ==1 && nRD==1 && nWR==0) mem[A] <= D;
 
-// При nRD=0 - читать из памяти
-assign D = nRD ? 8'hZZ : I;
+// При nRD=0 - читать из памяти, nWR=0 писать в память
+assign D = {nRD,nWR} == 2'b01 ? (nIORQ ? I : 8'hFF) : 8'hZZ;
+
+// Подтяжки
+pullup(D[0]); pullup(D[1]); pullup(D[2]); pullup(D[3]);
+pullup(D[4]); pullup(D[5]); pullup(D[6]); pullup(D[7]);
+
 // ---------------------------------------------------------------------
 
 wire nM1;
@@ -44,8 +53,6 @@ wire nBUSACK;   // Запрос шины
 
 // Запросы извне
 wire nWAIT      = 1;    // Всегда 1
-wire nINT       = 1;    // Срабатывает при 0, вызывается при каждом кадре VGA (50 Гц должно быть)
-                        // При этом 0 активен от начала до конца линии (256 пикселей)
 wire nNMI       = 1;    // NMI активируется при 0
 wire nBUSRQ     = 1;    // Всегда 1
 wire nRESET     = 1;    // Кнопка сброса (или locked)

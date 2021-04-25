@@ -118,13 +118,19 @@ reg   [ 7:0] membank = 8'b00000000;
 wire W = (nIORQ == 1 && nRD == 1 && nWR == 0 && A[15:14] != 2'b00);
 
 // При nRD=0 - читать из памяти или порта
+// При nWR=0   Запись в память или порт
 assign D =
-    // nRD=1   Чтение не производится
+
+    // Все шины отключены
+    nRD && nWR && nMREQ ? 8'hFF :
+
+    // Чтение не производится
     nRD   ? 8'hZZ :
-    // nIORQ=1 Читать из памяти
-    nIORQ ? Data  :
+
+    // Читать из памяти
+    nIORQ ? Data :
     // @TODO читать из AY
-    // nIORQ=0 Читать из порта FEh
+    // Читать из порта FEh
     A[0] == 1'b0 ? {1'b1, /*D6*/ mic, 1'b1, /*D4..D0*/ DKbd[4:0]} :
     // Все остальное
     8'hFF;
@@ -227,8 +233,8 @@ wire         nvblank;
 wire         f1_screen;
 wire         f2_screen;
 
-video UnitV(
-
+video UnitV
+(
     .clk        (clock_25),
     .red        (VGA_R),
     .green      (VGA_G),
@@ -289,8 +295,8 @@ wire        ps2_data_clk;
 wire [7:0]  DKbd;
 
 // Физический интерфейс
-ps2_keyboard UnitPS(
-
+ps2_keyboard UnitPS
+(
     .CLOCK_50           (CLOCK_50),
     .PS2_CLK            (PS2_CLK),
     .PS2_DAT            (PS2_DAT),
@@ -299,8 +305,8 @@ ps2_keyboard UnitPS(
 );
 
 // Клавиатура ZX
-keyboard UnitKBD(
-
+keyboard UnitKBD
+(
     .CLOCK_50       (CLOCK2_50),
     .ps2_data_clk   (ps2_data_clk),
     .ps2_data       (ps2_data),
