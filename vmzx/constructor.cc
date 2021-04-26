@@ -71,6 +71,7 @@ Z80Spectrum::Z80Spectrum() {
         lookupfb[y] = 0x4000 + 32*((y & 0x38)>>3) + 256*(y&7) + 2048*(y>>6);
     }
 
+    // Обязательные ROM
     loadrom("48k.rom",   1);
     loadrom("128k.rom",  0);
     loadrom("trdos.rom", 4);

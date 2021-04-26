@@ -26,3 +26,7 @@ mp4skip:
 	./vmzx dizzy3.z80 -s -o - | $(FF1) - $(SCALE) $(FF2) record.mp4
 install:
 	cp vmzx /usr/local/bin
+	cp 128k.rom /usr/local/share/vmzx/128k.rom
+	cp 48k.rom /usr/local/share/vmzx/48k.rom
+	cp trdos.rom /usr/local/share/vmzx/trdos.rom
+	cp 48k.z80 /usr/local/share/vmzx/48k.z80

@@ -344,7 +344,7 @@ void Z80Spectrum::disasm_repaint() {
     ds_start &= 0xffff;
     ds_showfb = 0;
 
-    int i, j, k, catched = 0;
+    int j, k, catched = 0;
     int bp_found;
     int ds_current = ds_start;
 
@@ -354,9 +354,9 @@ void Z80Spectrum::disasm_repaint() {
     ds_color(0xffffff, 0);
 
     // Начать отрисовку сверху вниз
-    for (i = 0; i < 43; i++) {
+    for (int _a = 0; _a < 43; _a++) {
 
-        int dsy  = i + 1;
+        int dsy  = _a + 1;
         int size = disasm_line(ds_current);
 
         // Поиск прерывания
@@ -369,7 +369,7 @@ void Z80Spectrum::disasm_repaint() {
         }
 
         // Запись номера строки
-        ds_rowdis[i] = ds_current;
+        ds_rowdis[_a] = ds_current;
 
         // Курсор находится на текущей линии
         if (ds_cursor == ds_current) {
@@ -379,7 +379,7 @@ void Z80Spectrum::disasm_repaint() {
             sprintf(tmp, "%04X", ds_current);
             print(1, dsy, tmp);
 
-            ds_match_row = i;
+            ds_match_row = _a;
             catched = 1;
         }
         // Либо на какой-то остальной
@@ -490,18 +490,18 @@ void Z80Spectrum::disasm_repaint() {
     sprintf(tmp, "IFF2:  %01X", iff2);  print(47, 16, tmp);
 
     // Вывести дамп памяти
-    for (i = 0; i < 14; i++) {
+    for (int _a = 0; _a < 14; _a++) {
 
         for (k = 0; k < 8; k++) {
 
             sprintf(tmp, "%02X", mem_read(8*i+k+ds_dumpaddr));
             ds_color(k % 2 ? 0x40c040 : 0xc0f0c0, 0);
-            print(43 + 2*k, i + 23, tmp);
+            print(43 + 2*k, _a + 23, tmp);
         }
 
         ds_color(0x909090, 0);
-        sprintf(tmp, "%04X", ds_dumpaddr + 8*i);
-        print(38, i + 23, tmp);
+        sprintf(tmp, "%04X", ds_dumpaddr + 8*_a);
+        print(38, _a + 23, tmp);
     }
     ds_color(0xf0f0f0, 0); print(38, 22, "ADDR  0 1 2 3 4 5 6 7");
 

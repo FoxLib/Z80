@@ -57,8 +57,18 @@ void Z80Spectrum::loadbin(const char* filename, int address) {
 // Загрузка базового ROM
 void Z80Spectrum::loadrom(const char* filename, int bank) {
 
+    char fn[128];
+
     FILE* fp = fopen(filename, "rb");
-    if (fp == NULL) { printf("ROM %s not exists\n", filename); exit(1); }
+    if (fp == NULL) {
+
+        sprintf(fn, "/usr/local/share/vmzx/%s", filename);
+        fp = fopen(fn, "rb");
+        if (fp == NULL) {
+            printf("ROM %s not exists\n", filename);
+            exit(1);
+        }
+    }
 
     if (bank < 4) {
         fread(rom + 16384*bank, 1, 16384, fp);
@@ -73,10 +83,20 @@ void Z80Spectrum::loadrom(const char* filename, int bank) {
 // https://worldofspectrum.org/faq/reference/128kreference.htm
 void Z80Spectrum::loadz80(const char* filename) {
 
+    char fn[128];
     unsigned char data[128*1024];
 
     FILE* fp = fopen(filename, "rb");
-    if (fp == NULL) { printf("Can't load file %s\n", filename); exit(1); }
+    if (fp == NULL) {
+
+        sprintf(fn, "/usr/local/share/vmzx/%s", filename);
+        fp = fopen(fn, "rb");
+        if (fp == NULL) {
+            printf("Can't load file %s\n", filename);
+            exit(1);
+        }
+    }
+
     fseek(fp, 0, SEEK_END);
     int fsize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
