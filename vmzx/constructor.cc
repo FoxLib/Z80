@@ -14,6 +14,7 @@ Z80Spectrum::Z80Spectrum() {
     diff_prev_frame     = 1; // Первый кадр всегда отличается
 
     t_states_cycle      = 0;
+    t_states_all        = 0;
     flash_state         = 0;
     flash_counter       = 0;
     ms_clock_old        = 0;

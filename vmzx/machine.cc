@@ -227,6 +227,7 @@ void Z80Spectrum::key_press(int row, int mask, int press) {
 void Z80Spectrum::keyb(int press, SDL_KeyboardEvent* eventkey) {
 
     int key = eventkey->keysym.sym;
+    int ts;
 
     switch (key) {
 
@@ -321,7 +322,10 @@ void Z80Spectrum::keyb(int press, SDL_KeyboardEvent* eventkey) {
                     } else {
 
                         halted = 0;
-                        t_states_cycle += run_instruction();
+
+                        ts = run_instruction();
+                        t_states_cycle += ts;
+                        t_states_all   += ts;
                         ds_cursor = pc;
                     }
 

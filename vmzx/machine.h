@@ -113,6 +113,7 @@ protected:
     unsigned char   trdos[16384];
 
     int     t_states_cycle;
+    long    t_states_all;
     int     port_7ffd;
     int     trdos_latch;
 

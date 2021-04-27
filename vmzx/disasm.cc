@@ -335,6 +335,28 @@ void Z80Spectrum::redraw_fb() {
     ds_showfb = 1;
 }
 
+void Z80Spectrum::ds_color(int fore, int back) {
+
+    ds_color_fore = fore;
+    ds_color_back = back;
+}
+
+void Z80Spectrum::z80state_dump() {
+
+    printf("BC:  %04X | DE:  %04X | HL:  %04X | AF:  %04X\n", b*256 + c, d*256 + e, h*256 + l, a*256 + get_flags_register());
+    printf("BC`: %04X | DE`: %04X | HL`: %04X | AF`: %04X\n", b_prime*256 + c_prime, d_prime*256 + e_prime, h_prime*256 + l_prime, a_prime*256 + get_flags_prime());
+    printf("IMODE: %d | IFF1: %d | IFF2: %d\n", imode, iff1, iff2);
+    printf("I:  %02x   | R: %02x\n", i, r);
+    printf("IX: %04x | IY: %04x\n", ix, iy);
+    printf("SP: %04x\n", sp);
+    printf("PC: %04x\n", pc);
+
+    FILE* fp = fopen("debug_memory_dump.bin", "wb+");
+    if (fp == NULL) { printf("Can't open file debug_memory_dump.bin for writing\n"); exit(1); }
+    fwrite(memory, 1, 128*1024, fp);
+    fclose(fp);
+}
+
 // Перерисовать дизассемблер
 void Z80Spectrum::disasm_repaint() {
 
@@ -461,15 +483,14 @@ void Z80Spectrum::disasm_repaint() {
     int f_prime = get_flags_prime();
 
     // Вывод содержимого регистров
-    sprintf(tmp, "B: %02X  B': %02X  S: %c", b, b_prime, f & 0x80 ? '1' : '-'); print(38, 1, tmp);
-    sprintf(tmp, "C: %02X  C': %02X  Z: %c", c, c_prime, f & 0x40 ? '1' : '-'); print(38, 2, tmp);
-    sprintf(tmp, "D: %02X  D': %02X  Y: %c", d, d_prime, f & 0x20 ? '1' : '-'); print(38, 3, tmp);
-    sprintf(tmp, "E: %02X  E': %02X  H: %c", e, e_prime, f & 0x10 ? '1' : '-'); print(38, 4, tmp);
-    sprintf(tmp, "H: %02X  H': %02X  X: %c", h, h_prime, f & 0x08 ? '1' : '-'); print(38, 5, tmp);
-    sprintf(tmp, "L: %02X  L': %02X  V: %c", l, l_prime, f & 0x04 ? '1' : '-'); print(38, 6, tmp);
-    sprintf(tmp, "A: %02X  A': %02X  N: %c", a, a_prime, f & 0x02 ? '1' : '-'); print(38, 7, tmp);
-    sprintf(tmp, "F: %02X  F': %02X  C: %c", f, f_prime, f & 0x01 ? '1' : '-'); print(38, 8, tmp);
-    sprintf(tmp, "F: %02X  F': %02X  C: %c", f, f_prime, f & 0x01 ? '1' : '-'); print(38, 8, tmp);
+    sprintf(tmp, "B %02X   B' %02X   S %c", b, b_prime, f & 0x80 ? '1' : '-'); print(38, 1, tmp);
+    sprintf(tmp, "C %02X   C' %02X   Z %c", c, c_prime, f & 0x40 ? '1' : '-'); print(38, 2, tmp);
+    sprintf(tmp, "D %02X   D' %02X   Y %c", d, d_prime, f & 0x20 ? '1' : '-'); print(38, 3, tmp);
+    sprintf(tmp, "E %02X   E' %02X   H %c", e, e_prime, f & 0x10 ? '1' : '-'); print(38, 4, tmp);
+    sprintf(tmp, "H %02X   H' %02X   X %c", h, h_prime, f & 0x08 ? '1' : '-'); print(38, 5, tmp);
+    sprintf(tmp, "L %02X   L' %02X   V %c", l, l_prime, f & 0x04 ? '1' : '-'); print(38, 6, tmp);
+    sprintf(tmp, "A %02X   A' %02X   N %c", a, a_prime, f & 0x02 ? '1' : '-'); print(38, 7, tmp);
+    sprintf(tmp, "F %02X   F' %02X   C %c", f, f_prime, f & 0x01 ? '1' : '-'); print(38, 8, tmp);
 
     sprintf(tmp, "BC: %04X", (b<<8) | c); print(38, 10, tmp);
     sprintf(tmp, "DE: %04X", (d<<8) | e); print(38, 11, tmp);
@@ -477,24 +498,27 @@ void Z80Spectrum::disasm_repaint() {
     sprintf(tmp, "SP: %04X", sp);         print(38, 13, tmp);
     sprintf(tmp, "AF: %04X", (a<<8) | f); print(38, 14, tmp);
 
-    sprintf(tmp, "(HL): %02X", mem_read((h<<8) | l)); print(38, 15, tmp);
-    sprintf(tmp, "(SP): %02X", mem_read(sp));         print(38, 16, tmp);
+    int _hl = (h<<8) | l;
+    int _vc = (i<<8) + 0xff; _vc = mem_read(_vc) + 256*mem_read((_vc+1) & 0xffff);
+    sprintf(tmp, "(HL): %04X", mem_read(_hl) | 256*mem_read((_hl+1)&0xffff)); print(38, 15, tmp);
+    sprintf(tmp, "(SP): %04X", mem_read(sp)  | 256*mem_read(( sp+1)&0xffff)); print(38, 16, tmp);
+    sprintf(tmp, "VECT: %04X", _vc); print(38, 17, tmp);
 
-    sprintf(tmp, "IX: %04X", ix);  print(47, 10, tmp);
-    sprintf(tmp, "IY: %04X", iy);  print(47, 11, tmp);
-    sprintf(tmp, "PC: %04X", pc);  print(47, 12, tmp);
+    sprintf(tmp, "IX: %04X", ix);  print(49, 10, tmp);
+    sprintf(tmp, "IY: %04X", iy);  print(49, 11, tmp);
+    sprintf(tmp, "PC: %04X", pc);  print(49, 12, tmp);
 
-    sprintf(tmp, "IR: %04X", (i<<8) | r); print(47, 13, tmp);
-    sprintf(tmp, "IM:    %01X", imode); print(47, 14, tmp);
-    sprintf(tmp, "IFF1:  %01X", iff1);  print(47, 15, tmp);
-    sprintf(tmp, "IFF2:  %01X", iff2);  print(47, 16, tmp);
+    sprintf(tmp, "IR: %04X", (i<<8) | r);   print(49, 13, tmp);
+    sprintf(tmp, "IM:    %01X", imode);     print(49, 14, tmp);
+    sprintf(tmp, "IFF1:  %01X", iff1);      print(49, 15, tmp);
+    sprintf(tmp, "IFF2:  %01X", iff2);      print(49, 16, tmp);
 
     // Вывести дамп памяти
     for (int _a = 0; _a < 14; _a++) {
 
         for (k = 0; k < 8; k++) {
 
-            sprintf(tmp, "%02X", mem_read(8*i+k+ds_dumpaddr));
+            sprintf(tmp, "%02X", mem_read(8*_a+k+ds_dumpaddr));
             ds_color(k % 2 ? 0x40c040 : 0xc0f0c0, 0);
             print(43 + 2*k, _a + 23, tmp);
         }
@@ -503,58 +527,11 @@ void Z80Spectrum::disasm_repaint() {
         sprintf(tmp, "%04X", ds_dumpaddr + 8*_a);
         print(38, _a + 23, tmp);
     }
+
     ds_color(0xf0f0f0, 0); print(38, 22, "ADDR  0 1 2 3 4 5 6 7");
 
-    // Прерывание
-    ds_color(0xffff00, 0); print(38, 18, "F2");
-    ds_color(0x00ffff, 0); print(41, 18, "Brk");
-
-    // Один шаг с заходом
-    ds_color(0xffff00, 0); print(38, 19, "F7");
-    ds_color(0x00ffff, 0); print(41, 19, "Step");
-
-    // Запуск программы
-    ds_color(0xffff00, 0); print(38, 20, "F9");
-    ds_color(0x00ffff, 0); print(41, 20, "Run");
-
-    // Переключить экраны
-    ds_color(0xffff00, 0); print(46, 18, "F5");
-    ds_color(0x00ffff, 0); print(49, 18, "Swi");
-
-    // Один шаг с заходом
-    ds_color(0xffff00, 0); print(46, 19, "F6");
-    ds_color(0x00ffff, 0); print(49, 19, "Intr");
-
-    // Один шаг
-    ds_color(0xffff00, 0); print(46, 20, "F8");
-    ds_color(0x00ffff, 0); print(49, 20, "Over");
-
     // Некоторые индикаторы
-    ds_color(0x808080, 0); sprintf(tmp, "TStates: %d", t_states_cycle); print(38, 37, tmp);
-
-    // Halted
-    ds_color(halted ? 0xffff00 : 0x707070, 0);
-    print(38, 37, "H");
-}
-
-void Z80Spectrum::ds_color(int fore, int back) {
-
-    ds_color_fore = fore;
-    ds_color_back = back;
-}
-
-void Z80Spectrum::z80state_dump() {
-
-    printf("BC:  %04X | DE:  %04X | HL:  %04X | AF:  %04X\n", b*256 + c, d*256 + e, h*256 + l, a*256 + get_flags_register());
-    printf("BC`: %04X | DE`: %04X | HL`: %04X | AF`: %04X\n", b_prime*256 + c_prime, d_prime*256 + e_prime, h_prime*256 + l_prime, a_prime*256 + get_flags_prime());
-    printf("IMODE: %d | IFF1: %d | IFF2: %d\n", imode, iff1, iff2);
-    printf("I:  %02x   | R: %02x\n", i, r);
-    printf("IX: %04x | IY: %04x\n", ix, iy);
-    printf("SP: %04x\n", sp);
-    printf("PC: %04x\n", pc);
-
-    FILE* fp = fopen("debug_memory_dump.bin", "wb+");
-    if (fp == NULL) { printf("Can't open file debug_memory_dump.bin for writing\n"); exit(1); }
-    fwrite(memory, 1, 128*1024, fp);
-    fclose(fp);
+    ds_color(0x808080, 0);
+    sprintf(tmp, "VStates: %d",  t_states_cycle); print(38, 38, tmp);
+    sprintf(tmp, "AStates: %li", t_states_all);   print(38, 39, tmp);
 }
