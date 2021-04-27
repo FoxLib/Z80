@@ -101,8 +101,10 @@ void processing() {
         // Загрузка данных
         fread(buf, 1, block_size, tap_file);
 
+        int block_type = buf[cursor] & 0x80  ? 1 : 0;
+
         // Первый байт: 00 заголовок FF данные
-        int pilot_len = buf[cursor] & 0x80 ? 3224 : 8064;
+        int pilot_len = block_type ? 3224 : 8064;
 
         // LEADER
         for (int i = 0; i < (pilot_len>>1); i++) {
@@ -122,8 +124,8 @@ void processing() {
         // Сигнал синхронизации
         push_tstates(954, HI);
 
-        // Промежутки
-        for (int i = 0; i < 1000; i++) push_tstates(3500, LO);
+        // Промежутки 1 сек
+        for (int i = 0; i < 1000; i++) push_tstates(3500, HI);
     }
 }
 
