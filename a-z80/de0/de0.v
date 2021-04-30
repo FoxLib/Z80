@@ -109,6 +109,7 @@ de0pll u0
 reg   [ 7:0] Data;              // Данные на основную шину
 wire  [ 7:0] Dout;              // Оперативная память 128k
 wire  [ 7:0] Drom;              // Обращение к ROM
+wire  [ 7:0] Trom;              // Обращение к ROM TrDOS
 wire  [15:0] A;
 wire  [ 7:0] D;
 reg   [16:0] address;
@@ -176,7 +177,7 @@ memory UnitM
     .q_b        (fb_data),
 );
 
-// 32k ROM
+// 32k ROM 128/48k
 rom UnitR
 (
     .clock      (clock_100),
@@ -184,6 +185,15 @@ rom UnitR
     .q_a        (Drom),
 
 );
+
+/*
+trdos TrDOSROM
+(
+    .clock      (clock_100),
+    .address_a  (address[13:0]),
+    .q_a        (Trom)
+);
+*/
 
 // ---------------------------------------------------------------------
 // Ввод-вывод
@@ -202,8 +212,10 @@ always @(posedge clock_25) begin
 
         // Выбор банка и настроек возможны только при бите 5, равному 0
         if (A == 16'h7FFD && !membank[5]) membank <= D;
+
         // AY-3-8910
         else if (A == 18'hFFFD || A == 18'hBFFD) begin /* ничего нет */ end
+
         // Обновление бордюра https://speccy.info/Порт_FE
         else if (A[0] == 1'b0) begin
 
