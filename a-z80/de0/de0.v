@@ -114,6 +114,7 @@ wire  [15:0] A;
 wire  [ 7:0] D;
 reg   [16:0] address;
 reg   [ 7:0] membank = 8'b00000000;
+reg          trdoslatch = 1'b0;
 
 // Писать только если разрешено, и не указывает на ROM
 wire W = (nIORQ == 1 && nRD == 1 && nWR == 0 && A[15:14] != 2'b00);
@@ -145,7 +146,7 @@ always @* begin
     case (A[15:14])
 
         // Выбор банка памяти ROM; 1-48k, 0-128k. Если membank[5]=1, то тогда всегда 48k
-        /* 0000-3FFF */ 2'b00: begin address = {membank[4] | membank[5], A[13:0]}; Data = Drom; end
+        /* 0000-3FFF */ 2'b00: begin address = {membank[4] | membank[5], A[13:0]}; Data = (trdoslatch ? Trom : Drom); end
 
         // Данный 16к блок всегда отображает bank 5
         /* 4000-7FFF */ 2'b01: begin address = {3'b101, A[13:0]}; end
@@ -157,6 +158,22 @@ always @* begin
         /* C000-FFFF */ 2'b11: begin address = {membank[5] ? 3'b000 : membank[2:0], A[13:0]}; end
 
     endcase
+
+end
+
+// Переключение в TRDOS
+always @(posedge CLOCK) begin
+
+    if (RESET_N == 1'b0) trdoslatch <= 1'b0;
+
+    // Trdos можно включить только в 48k
+    // Выйти из Trdos можно только выйдя из ROM
+    if (!nM1 && (membank[4] | membank[5])) begin
+
+        if      (A[15:8] == 8'h3D)       trdoslatch <= 1'b1;
+        else if (trdoslatch && A[15:14]) trdoslatch <= 1'b0;
+
+    end
 
 end
 
@@ -186,14 +203,12 @@ rom UnitR
 
 );
 
-/*
 trdos TrDOSROM
 (
     .clock      (clock_100),
     .address_a  (address[13:0]),
     .q_a        (Trom)
 );
-*/
 
 // ---------------------------------------------------------------------
 // Ввод-вывод
@@ -205,7 +220,7 @@ reg  speaker;
 always @(posedge clock_25) begin
 
     // Обновить параметры при сбросе
-    if (RESET_N == 1'b0) membank <= 1'b0;
+    if (RESET_N == 1'b0) begin membank <= 1'b0; end
 
     // Обнаружена запись в порт
     if (nIORQ == 0 && nRD == 1 && nWR == 0) begin
