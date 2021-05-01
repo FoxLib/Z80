@@ -6,6 +6,8 @@ tap:
 bas:
 	bas2tap -q tb.bas tb.tap -sHELLOBENCH
 	make tap
+spi:
+	z80asm spi.asm -o spi.bin
 vcd:
 	gtkwave tb.vcd
 wave:

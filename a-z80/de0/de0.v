@@ -62,6 +62,9 @@ module de0(
       output             VGA_VS
 );
 
+// MISO: Input Port
+assign SD_DATA[0] = 1'bZ;
+
 // Z-state
 assign DRAM_DQ = 16'hzzzz;
 assign GPIO_0  = 36'hzzzzzzzz;
@@ -170,8 +173,10 @@ always @(posedge CLOCK) begin
     // Выйти из Trdos можно только выйдя из ROM
     if (!nM1 && (membank[4] | membank[5])) begin
 
-        if      (A[15:8] == 8'h3D)       trdoslatch <= 1'b1;
-        else if (trdoslatch && A[15:14]) trdoslatch <= 1'b0;
+        if (A[15:8] == 8'h3D)
+            trdoslatch <= 1'b1;
+        else if (trdoslatch && A[15:14])
+            trdoslatch <= 1'b0;
 
     end
 
@@ -368,6 +373,37 @@ tapmem UnitTapmem
 );
 
 // ---------------------------------------------------------------------
+// Интерфейс SPI
+// ---------------------------------------------------------------------
+
+wire [1:0]  sd_cmd;
+wire [7:0]  sd_din;
+wire [7:0]  sd_out;
+wire        sd_signal;
+wire        sd_busy;
+wire        sd_timeout;
+
+sd UnitSD(
+
+    // 50 Mhz
+    .clock50    (CLOCK_50),
+
+    // Физический интерфейс
+    .SPI_CS     (SD_DATA[3]),   // Выбор чипа
+    .SPI_SCLK   (SD_CLK),       // Тактовая частота
+    .SPI_MISO   (SD_DATA[0]),   // Входящие данные
+    .SPI_MOSI   (SD_CMD),       // Исходящие
+
+    // Интерфейс
+    .sd_signal  (sd_signal),   // In   =1 Сообщение отослано на spi
+    .sd_cmd     (sd_cmd),      // In      Команда
+    .sd_din     (sd_din),      // Out     Принятое сообщение от карты
+    .sd_out     (sd_out),      // In      Сообщение на отправку к карте
+    .sd_busy    (sd_busy),     // Out  =1 Занято
+    .sd_timeout (sd_timeout),  // Out  =1 Таймаут
+);
+
+// ---------------------------------------------------------------------
 // Интерфейс оригинала процессора Z80
 // ---------------------------------------------------------------------
 
@@ -417,4 +453,5 @@ z80_top_direct_n Z80Unit
 
 endmodule
 
+`include "../sd.v"
 `include "../z80_top_direct_n.v"
