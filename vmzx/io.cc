@@ -23,7 +23,7 @@ int Z80Spectrum::get_bank(int address) {
 }
 
 // Чтение байта
-int Z80Spectrum::mem_read(int address) {
+unsigned char Z80Spectrum::mem_read(unsigned int address) {
 
     // Обращение к ROM 128k|48k (0 или 16384)
     if (address < 0x4000) {
@@ -37,7 +37,7 @@ int Z80Spectrum::mem_read(int address) {
 }
 
 // Запись байта
-void Z80Spectrum::mem_write(int address, int data) {
+void Z80Spectrum::mem_write(unsigned int address, unsigned char data) {
 
     address &= 0xffff;
     if (address < 0x4000) return;
@@ -49,7 +49,7 @@ void Z80Spectrum::mem_write(int address, int data) {
 }
 
 // Чтение из порта
-int Z80Spectrum::io_read(int port) {
+unsigned char Z80Spectrum::io_read(unsigned int port) {
 
     // Чтение клавиатуры
     if (port == 0x7FFD) {
@@ -79,7 +79,7 @@ int Z80Spectrum::io_read(int port) {
 }
 
 // Запись в порт
-void Z80Spectrum::io_write(int port, int data) {
+void Z80Spectrum::io_write(unsigned int port, unsigned char data) {
 
     if (port == 0x7ffd) {
 

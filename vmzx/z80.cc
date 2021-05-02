@@ -26,7 +26,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 struct Tflags {
-    char S, Z, Y, H, X, P, N, C;
+    unsigned char S, Z, Y, H, X, P, N, C;
 };
 
 static const int parity_bits[256] = {
@@ -137,18 +137,19 @@ protected:
 
     // All right, let's initialize the registers.
     // First, the standard 8080 registers.
-    int a, b, c, d, e, h, l;
+    unsigned char a, b, c, d, e, h, l;
 
     // Now the special Z80 copies of the 8080 registers
     //  (the ones used for the SWAP instruction and such).
-    int a_prime, b_prime, c_prime, d_prime, e_prime, h_prime, l_prime;
+    unsigned char a_prime, b_prime, c_prime, d_prime, e_prime, h_prime, l_prime;
 
     // And now the Z80 index registers.
-    int ix, iy;
+    unsigned int ix, iy;
 
     // Then the "utility" registers: the interrupt vector,
     //  the memory refresh, the stack pointer (dff0), and the program counter.
-    int i, r, sp, pc;
+    unsigned char i, r;
+    unsigned int  sp, pc;
 
     // We don't keep an F register for the flags,
     //  because most of the time we're only accessing a single flag,
@@ -157,7 +158,7 @@ protected:
     struct Tflags flags, flags_prime;
 
     // And finally we have the interrupt mode and flip-flop registers.
-    int imode, iff1, iff2;
+    unsigned char imode, iff1, iff2;
 
     // These are all specific to this implementation, not Z80 features.
     // Keep track of whether we've had a HALT instruction called.
@@ -190,10 +191,10 @@ public:
     }
 
     // Интерфейс
-    virtual int  mem_read(int address) { return 0xff; }
-    virtual int  io_read (int port)    { return 0xff; }
-    virtual void mem_write(int address, int data) { }
-    virtual void io_write (int port,    int data) { }
+    virtual unsigned char mem_read(unsigned int address) { return 0xff; }
+    virtual unsigned char io_read (unsigned int port)    { return 0xff; }
+    virtual void mem_write(unsigned int address, unsigned char data) { }
+    virtual void io_write (unsigned int port,    unsigned char data) { }
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @public run_instruction
@@ -326,7 +327,7 @@ public:
         return cycle_counter;
     }
 
-    int get_operand(int opcode)
+    unsigned char get_operand(int opcode)
     {
         return  ((opcode & 0x07) == 0) ? b :
                 ((opcode & 0x07) == 1) ? c :
@@ -2922,29 +2923,29 @@ public:
     // We need the whole F register for some reason.
     //  probably a PUSH AF instruction,
     //  so make the F register out of our separate flags.
-    int get_flags_register()
+    unsigned char get_flags_register()
     {
-        return  (flags.S << 7) |
-                (flags.Z << 6) |
-                (flags.Y << 5) |
-                (flags.H << 4) |
-                (flags.X << 3) |
-                (flags.P << 2) |
-                (flags.N << 1) |
-                (flags.C);
+        return  (!!flags.S << 7) |
+                (!!flags.Z << 6) |
+                (!!flags.Y << 5) |
+                (!!flags.H << 4) |
+                (!!flags.X << 3) |
+                (!!flags.P << 2) |
+                (!!flags.N << 1) |
+                (!!flags.C);
     };
 
     // This is the same as the above for the F' register.
-    int get_flags_prime()
+    unsigned char get_flags_prime()
     {
-        return  (flags_prime.S << 7) |
-                (flags_prime.Z << 6) |
-                (flags_prime.Y << 5) |
-                (flags_prime.H << 4) |
-                (flags_prime.X << 3) |
-                (flags_prime.P << 2) |
-                (flags_prime.N << 1) |
-                (flags_prime.C);
+        return  (!!flags_prime.S << 7) |
+                (!!flags_prime.Z << 6) |
+                (!!flags_prime.Y << 5) |
+                (!!flags_prime.H << 4) |
+                (!!flags_prime.X << 3) |
+                (!!flags_prime.P << 2) |
+                (!!flags_prime.N << 1) |
+                (!!flags_prime.C);
     };
 
     // We need to set the F register, probably for a POP AF,
@@ -3209,10 +3210,10 @@ public:
 
     // The HL arithmetic instructions are the same as the A ones,
     //  just with twice as many bits happening.
-    void do_hl_add(int operand)
+    void do_hl_add(unsigned int operand)
     {
-        int hl = l | (h << 8);
-        int result = hl + operand;
+        long hl = l | ((long)h << 8);
+        long result = hl + operand;
 
         flags.N = 0;
         flags.C = (result & 0x10000) ? 1 : 0;
@@ -3224,11 +3225,11 @@ public:
         update_xy_flags(h);
     };
 
-    void do_hl_adc(int operand)
+    void do_hl_adc(unsigned int operand)
     {
         operand += flags.C;
-        int hl = l | (h << 8);
-        int result = hl + operand;
+        long hl = l | (h << 8);
+        long result = hl + operand;
 
         flags.S = (result & 0x8000) ? 1 : 0;
         flags.Z = !(result & 0xffff) ? 1 : 0;
@@ -3243,11 +3244,11 @@ public:
         update_xy_flags(h);
     };
 
-    void do_hl_sbc(int operand)
+    void do_hl_sbc(unsigned int operand)
     {
         operand += flags.C;
-        int hl = l | (h << 8);
-        int result = hl - operand;
+        long hl = l | (h << 8);
+        long result = hl - operand;
 
         flags.S = (result & 0x8000) ? 1 : 0;
         flags.Z = !(result & 0xffff) ? 1 : 0;
@@ -3572,7 +3573,7 @@ public:
     {
         flags.N = 0;
 
-        int result = ix + operand;
+        long result = ix + operand;
 
         flags.C = (result & 0x10000) ? 1 : 0;
         flags.H = (((ix & 0xfff) + (operand & 0xfff)) & 0x1000) ? 1 : 0;

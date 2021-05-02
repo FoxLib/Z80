@@ -210,10 +210,10 @@ protected:
     void    put48mem_byte(int address, unsigned char value)  { memory[c48k_address(address, 1)] = value; }
     void    put48mem_word(int address, unsigned short value) { put48mem_byte(address, value); put48mem_byte(address+1, value>>8); }
 
-    int     mem_read    (int address);
-    void    mem_write   (int address, int data);
-    int     io_read     (int port);
-    void    io_write    (int port, int data);
+    unsigned char   mem_read    (unsigned int address);
+    void            mem_write   (unsigned int address, unsigned char data);
+    unsigned char   io_read     (unsigned int port);
+    void            io_write    (unsigned int port, unsigned char data);
 
     void    trdos_handler();
 
