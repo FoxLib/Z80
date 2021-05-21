@@ -4,12 +4,13 @@ module tb;
 reg clock;
 reg clock_25;
 reg clock_50;
+reg locked = 0;
 
 always #0.5 clock    = ~clock;
 always #1.0 clock_50 = ~clock_50;
 always #1.5 clock_25 = ~clock_25;
 
-initial begin clock = 0; clock_25 = 0; clock_50 = 0; #2000 $finish; end
+initial begin clock = 1; clock_25 = 0; clock_50 = 0; #3 locked = 1; #2000 $finish; end
 initial begin $dumpfile("tb.vcd"); $dumpvars(0, tb); end
 
 // ---------------------------------------------------------------------
@@ -32,7 +33,7 @@ end
 
 z80 CPUnit
 (
-    .clock      (clock_50),
+    .clock      (clock_50 & locked),
     .address    (address),
     .data_i     (data_i),
     .data_o     (data_o),
