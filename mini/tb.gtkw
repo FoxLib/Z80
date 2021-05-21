@@ -1,0 +1,55 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Fri May 21 04:56:00 2021
+[*]
+[dumpfile] "/home/lis/dev/sr_z80/tb.vcd"
+[dumpfile_mtime] "Fri May 21 04:54:45 2021"
+[dumpfile_size] 48731
+[savefile] "/home/lis/dev/sr_z80/tb.gtkw"
+[timestart] 0
+[size] 1920 1031
+[pos] -1 -1
+*-5.000000 1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb.
+[sst_width] 258
+[signals_width] 213
+[sst_expanded] 1
+[sst_vpaned_height] 295
+@29
+tb.clock
+@28
+tb.CPUnit.clock
+@800200
+-IO
+@22
+tb.CPUnit.address[15:0]
+tb.CPUnit.cursor[15:0]
+tb.CPUnit.data[7:0]
+tb.CPUnit.data_o[7:0]
+@28
+tb.CPUnit.we
+@1000200
+-IO
+@800200
+-STATE
+@22
+tb.CPUnit.opcode[7:0]
+@28
+tb.CPUnit.sel
+@22
+tb.CPUnit.st[7:0]
+@1000200
+-STATE
+@800200
+-REG
+@22
+tb.CPUnit.pc[15:0]
+tb.CPUnit.sp[15:0]
+tb.CPUnit.bc[15:0]
+tb.CPUnit.de[15:0]
+tb.CPUnit.hl[15:0]
+tb.CPUnit.af[15:0]
+@1000200
+-REG
+[pattern_trace] 1
+[pattern_trace] 0

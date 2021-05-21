@@ -200,11 +200,12 @@ void Z80Spectrum::ay_tick() {
 void Z80Spectrum::ay_amp_adder(int& left, int& right) {
 
     // Каналы A-слева; B-посередине; C-справа
-    left  += (ay_amp[0] + ay_amp[1]) / 4;
-    right += (ay_amp[2] + ay_amp[1]) / 4;
+    left  += (ay_amp[0] + (ay_amp[1]/2)) / 4;
+    right += (ay_amp[2] + (ay_amp[1]/2)) / 4;
 
     // Потому что уши режет такой звук, сделал моно
     int center = (left + right) / 2;
+
     left  = center;
     right = center;
 
