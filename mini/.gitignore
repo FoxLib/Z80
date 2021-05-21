@@ -23,3 +23,5 @@ greybox_tmp
 undo_redo.txt
 PLLJ_PLLSPE_INFO.txt
 c5_pin_model_dump.txt
+*.bin
+*.gtkw

@@ -1,5 +1,5 @@
 // Для 01_xxx_xxx (операнд-источник)
-wire [7:0] ldreg_src =
+wire [7:0] ldsrc =
     data_i[2:0] == 0 ? bc[15:8] :
     data_i[2:0] == 1 ? bc[ 7:0] :
     data_i[2:0] == 2 ? de[15:8] :
@@ -9,7 +9,7 @@ wire [7:0] ldreg_src =
     data_i[2:0] == 6 ? 8'hFF : af[7:0];
 
 // При alum=1 подключение к памяти вместо регистра
-wire [7:0] alu_op2  = alum ? data_i : ldreg_src;
+wire [7:0] alu_op2  = alum ? data_i : ldsrc;
 wire [2:0] alu_mode = alum ? opcode[5:3] : data_i[5:3];
 
 // Арифметико-логика #1

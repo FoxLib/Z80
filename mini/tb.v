@@ -32,7 +32,7 @@ end
 
 z80 CPUnit
 (
-    .clock      (clock_25),
+    .clock      (clock_50),
     .address    (address),
     .data_i     (data_i),
     .data_o     (data_o),

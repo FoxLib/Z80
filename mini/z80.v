@@ -20,13 +20,13 @@ case (s1)
     // Запись нового опкода, декодирование инструкции
     0: begin
 
-        s1 <= 1;
-        s2 <= 0;
-        we <= 0;
-        alum <= 0;
-        pc <= pc + 1;
-        opcode <= data_i;
-        cursor <= 0;
+        s1      <= 1;
+        s2      <= 0;
+        we      <= 0;
+        alum    <= 0;
+        pc      <= pc + 1;
+        opcode  <= data_i;
+        cursor  <= 0;
 
         casex (data_i)
 
@@ -43,34 +43,29 @@ case (s1)
 
             end
 
-            // 1/2t: ld r,r
+            // 1/2t: ld r,r | halt
+            8'b01_110_110: begin s1  <= 0; pc <= pc; end
             8'b01_xxx_110: begin sel <= 1; cursor <= hl; end
-            8'b01_110_110: begin s1 <= 0; pc <= pc; end
             8'b01_xxx_xxx: begin
 
-                data_o <= ldreg_src;
+                data_o <= ldsrc;
                 cursor <= hl;
                 s1     <= 0;
 
                 case (data_i[5:3])
 
-                    0: bc[15:8] <= ldreg_src;
-                    1: bc[ 7:0] <= ldreg_src;
-                    2: de[15:8] <= ldreg_src;
-                    3: de[ 7:0] <= ldreg_src;
-                    4: hl[15:8] <= ldreg_src;
-                    5: hl[ 7:0] <= ldreg_src;
+                    0: bc[15:8] <= ldsrc; 1: bc[ 7:0] <= ldsrc;
+                    2: de[15:8] <= ldsrc; 3: de[ 7:0] <= ldsrc;
+                    4: hl[15:8] <= ldsrc; 5: hl[ 7:0] <= ldsrc;
                     6: begin sel <= 1; we <= 1; s1 <= 1; end // Запись в память
-                    7: af[ 7:0] <= ldreg_src;
+                    7: af[ 7:0] <= ldsrc;
 
                 endcase
 
             end
 
-            // <alu> a,(hl)
+            // <alu> a,(hl)|r
             8'b10_xxx_110: begin sel <= 1; cursor <= hl; alum <= 1; end
-
-            // <alu> a,r
             8'b10_xxx_xxx: begin
 
                 s1 <= 0;
@@ -103,7 +98,7 @@ case (s1)
 
         endcase
 
-        // 2/3T: ld r, i; ld r, (hl)
+        // 2/3T: ld r,#; ld r,(hl)
         8'b00_xxx_110,
         8'b01_xxx_110: case (s2)
 
@@ -116,18 +111,15 @@ case (s1)
                 s1 <= 0;
                 s2 <= 1;
 
-                // Если это ld r,i => pc++
+                // Если это ld r,# => pc++
                 if (opcode[6] == 0) pc <= pc + 1;
 
                 case (opcode[5:3])
 
-                    0: bc[15:8] <= data_i;
-                    1: bc[ 7:0] <= data_i;
-                    2: de[15:8] <= data_i;
-                    3: de[ 7:0] <= data_i;
-                    4: hl[15:8] <= data_i;
-                    5: hl[ 7:0] <= data_i;
-                    6: begin sel <= 1; we <= 1; s1 <= 1; end // Запись в память
+                    0: bc[15:8] <= data_i; 1: bc[7:0] <= data_i;
+                    2: de[15:8] <= data_i; 3: de[7:0] <= data_i;
+                    4: hl[15:8] <= data_i; 5: hl[7:0] <= data_i;
+                    6: begin sel <= 1; we <= 1; s1 <= 1; end // ld (hl),r
                     7: af[ 7:0] <= data_i;
 
                 endcase
@@ -137,7 +129,7 @@ case (s1)
 
         endcase
 
-        // 1/2t: ld r,r
+        // 1/2t: ld (hl),r
         8'b01_xxx_xxx: begin s1 <= 0; sel <= 0; we <= 0; end
 
         // <alu> a,(hl)
