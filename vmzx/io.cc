@@ -52,16 +52,16 @@ void Z80Spectrum::mem_write(unsigned int address, unsigned char data) {
 unsigned char Z80Spectrum::io_read(unsigned int port) {
 
     // Чтение клавиатуры
-    if (port == 0x7FFD) {
+    if      (port == 0xFFFD) { return ay_register; }
+    else if (port == 0xBFFD) { return ay_regs[ay_register%15]; }
+    //else if (port == 0x7FFD) {
+    else if ((port&255) == 0xFD) {
         return port_7ffd;
     }
-    else if (port == 0xFFFD) { return ay_register; }
-    else if (port == 0xBFFD) { return ay_regs[ay_register%15]; }
     else if ((port & 1) == 0) {
 
         // Чтение из порта во время движения луча по бордеру
         // if (contended_mem && beam_drawing && !beam_in_paper) { cycle_counter++; }
-
         int result = 0xff;
         for (int row = 0; row < 8; row++) {
             if (!(port & (1 << (row + 8)))) {
@@ -81,7 +81,13 @@ unsigned char Z80Spectrum::io_read(unsigned int port) {
 // Запись в порт
 void Z80Spectrum::io_write(unsigned int port, unsigned char data) {
 
-    if (port == 0x7ffd) {
+    // AY address register
+    if (port == 0xFFFD) { ay_register = data & 15; }
+    // AY address data
+    else if (port == 0xBFFD) { ay_write_data(data); }
+    else if (port == 0x1FFD) { /* ничего пока что */ }
+    //else if (port == 0x7FFD) {
+    else if ((port & 255) == 0xFD) {
 
         // D5: запрещение управления расширенной памятью
         if (port_7ffd & 0x20) {
@@ -91,11 +97,6 @@ void Z80Spectrum::io_write(unsigned int port, unsigned char data) {
 
         port_7ffd = data;
     }
-    // AY address register
-    else if (port == 0xFFFD) { ay_register = data & 15; }
-    // AY address data
-    else if (port == 0xBFFD) { ay_write_data(data); }
-    else if (port == 0x1FFD) { /* ничего пока что */ }
     else if ((port & 1) == 0) {
 
         // Чтение в порт во время движения луча по бордеру
@@ -103,6 +104,8 @@ void Z80Spectrum::io_write(unsigned int port, unsigned char data) {
 
         border_id = (data & 7);
         port_fe = data;
+    }
+    else {
     }
 }
 
