@@ -206,8 +206,10 @@ void Z80Spectrum::ay_amp_adder(int& left, int& right) {
     // Потому что уши режет такой звук, сделал моно
     int center = (left + right) / 2;
 
-    left  = center;
-    right = center;
+    if (ay_mono) {
+        left  = center;
+        right = center;
+    }
 
     if (left  > 255) left  = 255; else if (left  < 0) left  = 0;
     if (right > 255) right = 255; else if (right < 0) right = 0;

@@ -40,6 +40,7 @@ Z80Spectrum::Z80Spectrum() {
     ay_env_first        = 1;
     ay_env_rev          = 0;
     ay_env_period       = 0;
+    ay_mono             = 0;
 
     // Настройки записи фреймов
     con_frame_start     = 0;

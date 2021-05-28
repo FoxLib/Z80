@@ -89,8 +89,8 @@ void Z80Spectrum::args(int argc, char** argv) {
 
             switch (argv[u][1]) {
 
-                // Отключение SDL
-                case 'c': sdl_enable = 0; break;
+                // 128k режим
+                case '2': port_7ffd = 0; break;
 
                 // Включение последовательности автостарта (RUN ENT)
                 case 'a': autostart = 1; break;
@@ -103,18 +103,29 @@ void Z80Spectrum::args(int argc, char** argv) {
                     u += 2;
                     break;
 
+                // Отключение SDL
+                case 'c': sdl_enable = 0; break;
+
                 // При загрузке включить отладчик
                 case 'd': ds_viewmode = 0; break;
 
                 // Остановка на HALT
                 case 'h': ds_halt_dump = 1; break;
 
-                case 'x': sdl_disable_sound = 1; break;
+                // Нажатие на пробел через некоторое время
+                case 'k': auto_keyb = 1; break;
 
-                // Установка регистра PC (hex)
-                case 'p':
+                // Пропуск кадров
+                case 'm':
 
-                    sscanf(argv[u+1], "%x", & pc); u++;
+                    sscanf(argv[u+1], "%d", &skip_first_frames); u++;
+                    break;
+
+                // Длительность
+                case 'M':
+
+                    sscanf(argv[u+1], "%d", &con_frame_end); u++;
+                    con_frame_end *= 50;
                     break;
 
                 // Файл для записи видео
@@ -128,13 +139,10 @@ void Z80Spectrum::args(int argc, char** argv) {
                     u++;
                     break;
 
-                // Нажатие на пробел через некоторое время
-                case 'k': auto_keyb = 1; break;
+                // Установка регистра PC (hex)
+                case 'p':
 
-                // Пропуск кадров
-                case 'm':
-
-                    sscanf(argv[u+1], "%d", &skip_first_frames); u++;
+                    sscanf(argv[u+1], "%x", & pc); u++;
                     break;
 
                 // Загрузка ROM 0/1
@@ -143,18 +151,8 @@ void Z80Spectrum::args(int argc, char** argv) {
                     loadrom(argv[u+1], argv[u][2] - '0'); u++;
                     break;
 
-                // Длительность
-                case 'M':
-
-                    sscanf(argv[u+1], "%d", &con_frame_end); u++;
-                    con_frame_end *= 50;
-                    break;
-
                 // Скип дублирующийся фреймов
                 case 's': skip_dup_frame = 1; break;
-
-                // 128k режим
-                case '2': port_7ffd = 0; break;
 
                 // Файл для записи звука
                 case 'w':
@@ -164,6 +162,12 @@ void Z80Spectrum::args(int argc, char** argv) {
                     fseek(wave_file, 44, SEEK_SET);
                     u++;
                     break;
+
+                // Отключение звука
+                case 'x': sdl_disable_sound = 1; break;
+
+                // Активация моно
+                case 'z': ay_mono = 1; break;
             }
 
         }

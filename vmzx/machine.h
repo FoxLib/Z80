@@ -166,7 +166,7 @@ protected:
     int     ay_noise_toggle, ay_noise_period, ay_rng;
     int     ay_noise_tick, ay_env_tick, ay_env_period;
     int     ay_env_first, ay_env_rev, ay_env_counter;
-    int     ay_env_internal_tick, ay_env_cycles;
+    int     ay_env_internal_tick, ay_env_cycles, ay_mono;
 
     unsigned char audio_frame[44100];
     unsigned int  wav_cursor;
