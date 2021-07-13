@@ -2,6 +2,7 @@ module kr580(
 
     /* Шина данных */
     input   wire         pin_clk,
+    input   wire         pin_locked,
     input   wire [ 7:0]  pin_i,
     output  wire [15:0]  pin_a,         // Указатель на адрес
     output  reg          pin_enw,       // Разрешить запись (высокий уровень)
@@ -154,7 +155,7 @@ reg  [ 7:0] op2 = 0;        // Второй операнд для АЛУ
 reg  [15:0] op2w = 0;
 
 /* Исполнение инструкции */
-always @(posedge pin_clk) begin
+always @(posedge pin_clk) if (pin_locked) begin
 
     /* Определение позитивного фронта intr */
     prev_intr <= pin_intr;
@@ -1376,7 +1377,7 @@ always @* begin
 end
 
 // Запись в регистры
-always @(negedge pin_clk) begin
+always @(negedge pin_clk) if (pin_locked) begin
 
     if      (ex_de_hl)         begin de <= hl;     hl <= de; end
     else if (reg_ldir == `LDI) begin de <= de + 1; hl <= hl + 1; bc <= bc - 1; end

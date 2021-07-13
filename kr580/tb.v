@@ -4,7 +4,7 @@
  * Эмулятор КР580*** какого-то там компа
  */
 
-module main;
+module tb;
 
 // ---------------------------------------------------------------------
 
@@ -12,7 +12,7 @@ reg         clk;
 always #0.5 clk         = ~clk;
 
 initial begin clk = 1; #20 pin_intr = 1'b1; #2000 $finish; end
-initial begin $dumpfile("main.vcd"); $dumpvars(0, main); end
+initial begin $dumpfile("tb.vcd"); $dumpvars(0, tb); end
 
 // ---------------------------------------------------------------------
 
@@ -24,7 +24,7 @@ reg  [ 7:0] bus_data_i = 8'h00;       // То, что читается из па
 wire [ 7:0] bus_data_o;               // То, что пишется в память
 wire [15:0] bus_addr;
 
-initial $readmemh("../bios/mon.hex", memory, 16'h0000);
+initial $readmemh("bios/mon.hex", memory, 16'h0000);
 
 /* Формируется логика чтения и записи в память */
 always @(posedge clk) begin

@@ -96,7 +96,7 @@ pll u0(
 wire        pin_enw;
 wire [15:0] pin_a;
 reg  [ 7:0] pin_i;
-reg  [ 7:0] pin_o;
+wire [ 7:0] pin_o;
 wire [ 7:0] pin_pa;
 reg  [ 7:0] pin_pi;
 wire [ 7:0] pin_po;
@@ -106,7 +106,8 @@ wire        pin_intr;
 kr580 u3(
 
     /* Шина данных */
-    .pin_clk    (clk25 & (locked_rst == 2'b11)),
+    .pin_clk    (clk25),
+    .pin_locked (locked),
     .pin_i      (pin_i),
     .pin_a      (pin_a),
     .pin_enw    (pin_enw),
@@ -342,3 +343,13 @@ always @(*) begin
 end
 
 endmodule
+
+
+// Подключение модулей
+// ---------------------------------------------------------------------
+
+`include "../kr580.v"
+`include "../z80vid.v"
+`include "../spi.v"
+`include "../ps2at2ascii.v"
+`include "../ps2keyboard.v"
