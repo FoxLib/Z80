@@ -173,6 +173,8 @@ protected:
     //  including processing any prefixes and handling interrupts.
     int cycle_counter;
 
+    int statistics[256];
+
 public:
 
     Z80() { reset(); }
@@ -188,6 +190,8 @@ public:
         halted = 0;
         do_delayed_di = do_delayed_ei = 0;
         cycle_counter = 0;
+
+        for (int i = 0; i < 256; i++) statistics[i] = 0;
     }
 
     // Интерфейс
@@ -227,6 +231,7 @@ public:
 
             // Read the byte at the PC and run the instruction it encodes.
             int opcode = mem_read(pc);
+            statistics[opcode]++;
             decode_instruction(opcode);
 
             pc = (pc + 1) & 0xffff;

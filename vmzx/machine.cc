@@ -44,7 +44,12 @@ void Z80Spectrum::main() {
 
                 switch (event.type) {
 
-                    case SDL_QUIT:  return;
+                    case SDL_QUIT:
+
+                        // Выдать статистику использования опкодов
+                        // for (int i = 0; i < 256; i++) printf("%08x %x \n", statistics[i], i);
+                        return;
+
                     case SDL_KEYDOWN: keyb(1, & event.key); break;
                     case SDL_KEYUP:   keyb(0, & event.key); break;
                 }

@@ -18,25 +18,25 @@ initial begin $dumpfile("tb.vcd"); $dumpvars(0, tb); end
 reg  [ 7:0] memory[65536];
 
 wire [15:0] address;
-wire [ 7:0] data_o;
-reg  [ 7:0] data_i = 8'hFF;
+wire [ 7:0] o_data;
+reg  [ 7:0] i_data = 8'hFF;
 wire        we;
 
 initial $readmemh("mem.hex", memory, 0);
 
 always @(posedge clock) begin
 
-    data_i <= memory[address];
-    if (we) memory[address] <= data_o;
+    i_data <= memory[address];
+    if (we) memory[address] <= o_data;
 
 end
 
 z80 CPUnit
 (
-    .clock      (clock_50 & locked),
+    .clock      (clock_25 & locked),
     .address    (address),
-    .data_i     (data_i),
-    .data_o     (data_o),
+    .i_data     (i_data),
+    .o_data     (o_data),
     .we         (we)
 );
 

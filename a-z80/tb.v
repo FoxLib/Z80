@@ -21,7 +21,7 @@ wire  [15:0] A;         // Address to memory
 inout [ 7:0] D;         // Data I/O
 
 // ---------------------------------------------------------------------
-initial begin clock = 1; clock_25 = 0; clock_50 = 0; #200 nINT = 1'b0; #2000 $finish; end
+initial begin clock = 1; clock_25 = 0; clock_50 = 0; #50 nINT = 1'b0; #2000 $finish; end
 initial begin $dumpfile("tb.vcd"); $dumpvars(0, tb); end
 initial $readmemh("tb.hex", mem, 16'h0000);
 initial $readmemh("tb.tap.hex", tapmem, 16'h0000);
